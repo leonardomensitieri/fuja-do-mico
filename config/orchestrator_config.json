@@ -1,0 +1,51 @@
+{
+  "_comentario": "Configuração do orquestrador central (00_orchestrator.py). Ajuste os thresholds conforme necessário.",
+
+  "thresholds": {
+    "_comentario": "Quantidade mínima de itens ALTO/MEDIO para cada tipo de edição",
+    "alto_min_completo": 3,
+    "alto_min_reduzido": 1,
+    "medio_min_reduzido": 3
+  },
+
+  "nodes": [
+    {
+      "id": "editorial",
+      "descricao": "Editorial da edição — sempre obrigatório",
+      "obrigatorio": true
+    },
+    {
+      "id": "indicador_financeiro",
+      "descricao": "Indicador financeiro principal (P/L, ROE, etc.) — sempre obrigatório",
+      "obrigatorio": true
+    },
+    {
+      "id": "analise_filosofos",
+      "descricao": "Análise pelos filósofos investidores (Buffett, Graham, Lynch, Barsi)",
+      "obrigatorio": false,
+      "condicao": "count_alto >= 1"
+    },
+    {
+      "id": "fuja_do_mico",
+      "descricao": "Seção Fuja do Mico — caso real de destruição de valor com lição",
+      "obrigatorio": true
+    },
+    {
+      "id": "dados_mercado",
+      "descricao": "Dados financeiros da B3 via Brapi (tickers, P/L, P/VP, ROE, DY)",
+      "obrigatorio": false,
+      "condicao": "brapi_disponivel == true"
+    },
+    {
+      "id": "conteudo_externo",
+      "descricao": "Conteúdo selecionado das fontes externas (newsletters, RSS, YouTube)",
+      "obrigatorio": false,
+      "condicao": "count_alto >= 2"
+    },
+    {
+      "id": "checklist",
+      "descricao": "Checklist do investidor — sempre obrigatório",
+      "obrigatorio": true
+    }
+  ]
+}
