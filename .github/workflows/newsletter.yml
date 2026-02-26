@@ -1,0 +1,160 @@
+# ============================================================
+# FUJA DO MICO — Orquestrador Principal (GitHub Actions)
+# ============================================================
+# Substitui completamente o n8n. Zero servidor externo.
+# Roda toda segunda às 8h (horário de Brasília = 11h UTC).
+#
+# FLUXO:
+#   Job 1 [gerar]         → 00_orchestrator.py controla tudo internamente:
+#                            coleta (01-04) → triagem (05) → Gate 1 → Gate 2
+#                            → geração (06) → template (07) → notificação (08)
+#   Job 2 [aguardar-aprovacao] → PAUSA aqui (GitHub Environment)
+#   Job 3 [distribuir]    → só roda depois da aprovação. Envia pelo Brevo.
+#
+# A APROVAÇÃO HUMANA acontece via Telegram Bot (script 08):
+#   Bot envia link para: Actions → essa execução → Review deployments → Approve
+#   Configure o environment "aprovacao-humana" em:
+#   Settings → Environments → aprovacao-humana → Required reviewers
+# ============================================================
+
+name: Newsletter — Fuja do Mico
+
+on:
+  schedule:
+    # Toda segunda-feira às 8h, horário de Brasília (UTC-3 = 11h UTC)
+    - cron: '0 11 * * 1'
+
+  # Permite rodar manualmente também (botão "Run workflow" no GitHub)
+  workflow_dispatch:
+    inputs:
+      tema_forcado:
+        description: 'Forçar tema específico (deixe vazio para automático)'
+        required: false
+        default: ''
+      edicao_numero:
+        description: 'Número da edição (deixe vazio para automático)'
+        required: false
+        default: ''
+
+jobs:
+
+  # ──────────────────────────────────────────────
+  # JOB 1: GERAR
+  # O orquestrador (00_orchestrator.py) controla todo o pipeline internamente.
+  # Um único step substitui os 8 steps individuais anteriores.
+  # ──────────────────────────────────────────────
+  gerar:
+    name: "🤖 Gerar Edição"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      # ── ORQUESTRADOR CENTRAL ──
+      # Decision Tree: Worker Script — lógica de decisão pura, sem chamadas à IA
+      # Internamente chama 01→02→03→04→05→Gate1→Gate2→06→07→08
+      - name: "🧠 Orquestrar pipeline completo"
+        env:
+          # Coleta Gmail
+          GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+          GMAIL_REMETENTES: ${{ secrets.GMAIL_REMETENTES }}
+          # Coleta YouTube
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          # Coleta Brapi (cotações básicas)
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          # Coleta Fintz (DY, proventos, Tesouro Direto — complementa o Brapi)
+          FINTZ_API_KEY: ${{ secrets.FINTZ_API_KEY }}
+          FINTZ_API_KEY_FALLBACK: ${{ secrets.FINTZ_API_KEY_FALLBACK }}
+          # Triagem e geração (Claude)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Tema e edição (opcionais)
+          TEMA_FORCADO: ${{ github.event.inputs.tema_forcado }}
+          EDICAO_NUMERO: ${{ github.event.inputs.edicao_numero }}
+          # Notificação Telegram
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Metadados GitHub Actions (para link de aprovação)
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/00_orchestrator.py
+
+      # Salva os artefatos gerados para o job de distribuição
+      - name: "💾 Salvar newsletter gerada"
+        uses: actions/upload-artifact@v4
+        with:
+          name: newsletter-gerada
+          path: |
+            output/newsletter_final.html
+            data/conteudo_gerado.json
+            data/orchestration_report.json
+          retention-days: 7
+
+  # ──────────────────────────────────────────────
+  # JOB 2: APROVAÇÃO HUMANA
+  # O workflow PAUSA aqui.
+  # Bot Telegram enviou o link no step anterior (08_notify.py).
+  # A pessoa clica no link e aprova em: Actions → essa execução → Review deployments → Approve
+  # ──────────────────────────────────────────────
+  aguardar-aprovacao:
+    name: "👤 Aguardando aprovação humana"
+    needs: gerar
+    runs-on: ubuntu-latest
+    environment: aprovacao-humana   # ← CONFIGURE ISSO NAS SETTINGS DO REPO
+    # Em: Settings → Environments → aprovacao-humana → Required reviewers → adicione seu usuário GitHub
+
+    steps:
+      - name: Aprovação recebida
+        run: echo "✅ Edição aprovada. Iniciando distribuição..."
+
+  # ──────────────────────────────────────────────
+  # JOB 3: DISTRIBUIR
+  # Só roda DEPOIS que o humano aprovar no job anterior.
+  # ──────────────────────────────────────────────
+  distribuir:
+    name: "📨 Distribuir Newsletter"
+    needs: aguardar-aprovacao
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: "📥 Recuperar newsletter aprovada"
+        uses: actions/download-artifact@v4
+        with:
+          name: newsletter-gerada
+          # Artefato contém: output/newsletter_final.html + data/conteudo_gerado.json
+          # O download preserva a estrutura de diretórios do upload
+          path: .
+
+      # ── WORKER COM API: Distribuição ──
+      - name: "📨 Enviar pelo Brevo (email marketing)"
+        # Decision Tree: Criatividade? NÃO → Algoritmo? SIM → External API? SIM → Worker with API
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_LIST_ID: ${{ secrets.BREVO_LIST_ID }}
+          EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
+          NOME_REMETENTE: ${{ secrets.NOME_REMETENTE }}
+        run: python scripts/09_distribute.py
+
+      - name: "✅ Confirmar envio"
+        run: echo "🎉 Newsletter enviada com sucesso!"

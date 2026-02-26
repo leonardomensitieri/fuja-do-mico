@@ -1,0 +1,17 @@
+{
+  "edicao_numero": "42",
+  "decisao": {
+    "tipo_edicao": "completa",
+    "gate_financeiro": {
+      "chamar_brapi": false,
+      "chamar_fintz": true,
+      "tickers": [
+        "TAEE11",
+        "EGIE3",
+        "CPLE6"
+      ],
+      "clone_detectado": "barsi",
+      "justificativa": "Gatilhos: [dividendos, dy, proventos]"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+# Feeds RSS monitorados pelo pipeline
+# Adicione ou remova URLs aqui — uma por linha
+# Linhas começando com # são ignoradas
+
+# Portais de notícias financeiras brasileiras
+https://www.infomoney.com.br/feed/
+https://exame.com/investimentos/feed/
+https://www.moneytimes.com.br/feed/
+https://einvestidor.estadao.com.br/feed/
+https://www.suno.com.br/noticias/feed/
+
+# Casas de análise (newsletters gratuitas)
+# https://www.empiricus.com.br/feed/
+# https://www.nordinvestimentos.com.br/feed/
+
+# Outros (descomente para ativar)
+# https://valoreconomico.com.br/rss/ultimas-noticias.xml

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liga HUB Finance</title>
+</head>
+<body style="margin:0; padding:0; background-color:#ffffff; font-family:Georgia,'Times New Roman',serif; font-size:16px; color:#1a1a1a; line-height:1.8;">
+
+<div style="max-width:600px; margin:0 auto; padding:48px 24px;">
+
+  <!-- SAUDAÇÃO + EDITORIAL -->
+  <p style="margin:0 0 18px 0;">Olá,</p>
+  <p style="margin:0 0 18px 0;">{{TEXTO_EDITORIAL}}</p>
+
+  <hr style="border:none; border-top:1px solid #e0e0e0; margin:36px 0;">
+
+  <!-- INDICADOR DA SEMANA
+       H1 = título de seção principal → rosa SEMPRE, SEM emoji
+       H2 = subtítulo dentro da seção → limpo, sem highlight, SEM emoji
+       Emojis: apenas no texto corrido, em posição estratégica (meio/final de frase)
+  -->
+  <h1 style="font-family:Arial,sans-serif; font-size:28px; font-weight:700; color:#0d1117; margin:0 0 20px 0; line-height:1.3;">
+    <span style="background-color:#fce4ec; padding:1px 4px;">{{INDICADOR_NOME}} ({{INDICADOR_SIGLA}})</span>
+  </h1>
+
+  <p style="margin:0 0 18px 0;">{{DESCRICAO_INDICADOR}}</p>
+
+  <!-- Fórmula — apenas monospace, sem borda, sem background -->
+  <p style="font-family:'Courier New',Courier,monospace; font-size:14px; margin:0 0 18px 0; color:#333333;">{{FORMULA}}</p>
+
+  <p style="margin:0 0 18px 0;"><strong>Em linguagem simples:</strong> {{DEFINICAO_SIMPLES}}</p>
+
+  <!-- H2 da subseção → limpo, sem highlight, sem emoji -->
+  <h2 style="font-family:Arial,sans-serif; font-size:20px; font-weight:700; color:#0d1117; margin:28px 0 12px 0; line-height:1.3;">{{TITULO_SECAO_1}}</h2>
+
+  <p style="margin:0 0 18px 0;">{{PARAGRAFO_1}}</p>
+  <p style="margin:0 0 18px 0;">{{PARAGRAFO_2}}</p>
+
+  <!-- Frase de alto impacto → negrito + highlight amarelo (max 1-2 por seção) -->
+  <p style="margin:0 0 18px 0;"><strong><span style="background-color:#fff176; padding:1px 2px;">{{PARAGRAFO_3}}</span></strong></p>
+
+  <hr style="border:none; border-top:1px solid #e0e0e0; margin:36px 0;">
+
+  <!-- O QUE OS GRANDES PENSAM
+       Prosa corrida: negrito + texto + critério em itálico
+       Sem separadores, sem cards, sem line breaks forçados
+       H1 SEM emoji
+  -->
+  <h1 style="font-family:Arial,sans-serif; font-size:28px; font-weight:700; color:#0d1117; margin:0 0 20px 0; line-height:1.3;">
+    <span style="background-color:#fce4ec; padding:1px 4px;">O que os grandes pensam</span>
+  </h1>
+
+  <p style="margin:0 0 18px 0;"><strong>Warren Buffett</strong> — {{BUFFETT_TEXTO}} <em style="color:#555555;">({{BUFFETT_CRITERIO}})</em></p>
+
+  <p style="margin:0 0 18px 0;"><strong>Benjamin Graham</strong> — {{GRAHAM_TEXTO}} <em style="color:#555555;">({{GRAHAM_CRITERIO}})</em></p>
+
+  <p style="margin:0 0 18px 0;"><strong>Peter Lynch</strong> — {{LYNCH_TEXTO}} <em style="color:#555555;">({{LYNCH_CRITERIO}})</em></p>
+
+  <p style="margin:0 0 18px 0;"><strong>Aswath Damodaran</strong> — {{DAMODARAN_TEXTO}} <em style="color:#555555;">({{DAMODARAN_CRITERIO}})</em></p>
+
+  <p style="margin:0 0 18px 0;"><strong>Luiz Barsi</strong> — {{BARSI_TEXTO}} <em style="color:#555555;">({{BARSI_CRITERIO}})</em></p>
+
+  <hr style="border:none; border-top:1px solid #e0e0e0; margin:36px 0;">
+
+  <!-- MERCADO HOJE — H1 SEM emoji -->
+  <h1 style="font-family:Arial,sans-serif; font-size:28px; font-weight:700; color:#0d1117; margin:0 0 20px 0; line-height:1.3;">
+    <span style="background-color:#fce4ec; padding:1px 4px;">Mercado hoje</span>
+  </h1>
+
+  <p style="margin:0 0 14px 0;">P/L atual das ações monitoradas:</p>
+
+  <table style="width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:14px; margin:0 0 12px 0;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:8px 12px; border-bottom:1px solid #cccccc; color:#555555; font-weight:700;">Ticker</th>
+        <th style="text-align:left; padding:8px 12px; border-bottom:1px solid #cccccc; color:#555555; font-weight:700;">P/L</th>
+        <th style="text-align:left; padding:8px 12px; border-bottom:1px solid #cccccc; color:#555555; font-weight:700;">Leitura</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:8px 12px; border-bottom:1px solid #eeeeee;"><strong>{{TICKER_1}}</strong></td>
+        <td style="padding:8px 12px; border-bottom:1px solid #eeeeee; color:{{COR_1_HEX}}; font-weight:600;">{{VALOR_1}}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid #eeeeee; color:{{COR_1_HEX}};">{{COR_1}}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px; border-bottom:1px solid #eeeeee;"><strong>{{TICKER_2}}</strong></td>
+        <td style="padding:8px 12px; border-bottom:1px solid #eeeeee; color:{{COR_2_HEX}}; font-weight:600;">{{VALOR_2}}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid #eeeeee; color:{{COR_2_HEX}};">{{COR_2}}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;"><strong>{{TICKER_3}}</strong></td>
+        <td style="padding:8px 12px; color:{{COR_3_HEX}}; font-weight:600;">{{VALOR_3}}</td>
+        <td style="padding:8px 12px; color:{{COR_3_HEX}};">{{COR_3}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:12px; color:#999999; font-family:Arial,sans-serif; margin:0 0 18px 0;">Fonte: Brapi · Verde = P/L abaixo de 15x · Amarelo = 15–25x · Vermelho = acima de 25x</p>
+
+  <hr style="border:none; border-top:1px solid #e0e0e0; margin:36px 0;">
+
+  <!-- FUJA DO MICO — H1 SEM emoji -->
+  <h1 style="font-family:Arial,sans-serif; font-size:28px; font-weight:700; color:#0d1117; margin:0 0 20px 0; line-height:1.3;">
+    <span style="background-color:#fce4ec; padding:1px 4px;">Fuja do Mico</span>
+  </h1>
+
+  <p style="margin:0 0 18px 0;"><strong>{{MICO_TITULO}}</strong></p>
+  <p style="margin:0 0 18px 0;">{{MICO_TEXTO}}</p>
+
+  <!-- Lição → blockquote simples, borda esquerda cinza, itálico — SEM emoji no início -->
+  <blockquote style="border-left:3px solid #cccccc; margin:0 0 18px 20px; padding:4px 0 4px 16px; color:#555555; font-style:italic;">
+    <strong style="font-style:normal;">Lição:</strong> {{MICO_LICAO}}
+  </blockquote>
+
+  <hr style="border:none; border-top:1px solid #e0e0e0; margin:36px 0;">
+
+  <!-- CHECKLIST — H1 SEM emoji -->
+  <h1 style="font-family:Arial,sans-serif; font-size:28px; font-weight:700; color:#0d1117; margin:0 0 16px 0; line-height:1.3;">
+    <span style="background-color:#fce4ec; padding:1px 4px;">Checklist do investidor</span>
+  </h1>
+
+  <p style="margin:0 0 14px 0;">Antes de investir, pergunte-se:</p>
+
+  <ul style="list-style:none; padding:0; margin:0 0 18px 0; font-family:Arial,sans-serif; font-size:15px; color:#333333;">
+    <li style="padding:6px 0 6px 26px; position:relative; border-bottom:1px solid #f0f0f0;">
+      <span style="position:absolute; left:0; top:5px; font-size:17px; color:#999999;">☐</span>{{CHECK_1}}
+    </li>
+    <li style="padding:6px 0 6px 26px; position:relative; border-bottom:1px solid #f0f0f0;">
+      <span style="position:absolute; left:0; top:5px; font-size:17px; color:#999999;">☐</span>{{CHECK_2}}
+    </li>
+    <li style="padding:6px 0 6px 26px; position:relative; border-bottom:1px solid #f0f0f0;">
+      <span style="position:absolute; left:0; top:5px; font-size:17px; color:#999999;">☐</span>{{CHECK_3}}
+    </li>
+    <li style="padding:6px 0 6px 26px; position:relative; border-bottom:1px solid #f0f0f0;">
+      <span style="position:absolute; left:0; top:5px; font-size:17px; color:#999999;">☐</span>{{CHECK_4}}
+    </li>
+    <li style="padding:6px 0 6px 26px; position:relative;">
+      <span style="position:absolute; left:0; top:5px; font-size:17px; color:#999999;">☐</span>{{CHECK_5}}
+    </li>
+  </ul>
+
+  <!-- ASSINATURA — casual, sem divisória, como email de amigo -->
+  <p style="margin:44px 0 4px 0; font-family:Arial,sans-serif; font-size:15px; color:#333333;">Até a próxima,</p>
+  <p style="margin:0 0 4px 0; font-family:Arial,sans-serif; font-size:15px; color:#333333;"><strong>{{ASSINANTE}}</strong></p>
+  <p style="margin:0; font-family:Arial,sans-serif; font-size:12px; color:#999999;">Liga HUB Finance · Newsletter semanal de análise fundamentalista</p>
+
+  <!-- FOOTER — quase invisível -->
+  <p style="margin:40px 0 0 0; font-family:Arial,sans-serif; font-size:11px; color:#bbbbbb; line-height:1.6;">
+    Você recebe este email porque se inscreveu na Liga HUB Finance.
+    <a href="#" style="color:#bbbbbb;">Cancelar inscrição</a> ·
+    <a href="#" style="color:#bbbbbb;">Ver no navegador</a><br>
+    Conteúdo informativo. Não é recomendação de investimento.
+  </p>
+
+</div>
+</body>
+</html>

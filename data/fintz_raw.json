@@ -1,0 +1,154 @@
+{
+  "acoes": [
+    {
+      "ticker": "PETR4",
+      "pl": 4.955795373516905,
+      "pvp": 0.9543478792971064,
+      "dy": 0.16317300840336135,
+      "ev_ebitda": 3.4370410589183895,
+      "p_ebitda": 1.8403108124544052,
+      "p_receita": 0.7775759338251994,
+      "lpa": 6.003072717445104,
+      "vpa": 31.173118990856235,
+      "valor_mercado": 396538126872.0,
+      "roe": 0.19368463495129198,
+      "roa": 0.06585467575687937,
+      "roic": 0.12693428381868527,
+      "margem_ebitda": 0.42252424349349654,
+      "margem_ebit": 0.2699920100908092,
+      "margem_bruta": 0.4909576129233739,
+      "margem_liquida": 0.1569023487088388,
+      "divida_bruta_pl": 0.924473968470464,
+      "divida_liq_ebitda": 1.5338651154754364,
+      "liquidez_corrente": 0.7582263645496149,
+      "proventos_12m": [
+        {
+          "data_com": "2025-12-22",
+          "data_pagamento": "2026-03-20",
+          "valor": 0.175182,
+          "tipo": "JRS CAP PROPRIO"
+        },
+        {
+          "data_com": "2025-12-22",
+          "data_pagamento": "2026-02-20",
+          "valor": 0.471604,
+          "tipo": "JRS CAP PROPRIO"
+        },
+        {
+          "data_com": "2025-12-22",
+          "data_pagamento": "2026-03-20",
+          "valor": 0.296421,
+          "tipo": "DIVIDENDO"
+        },
+        {
+          "data_com": "2025-08-21",
+          "data_pagamento": "2025-12-22",
+          "valor": 0.200922,
+          "tipo": "DIVIDENDO"
+        },
+        {
+          "data_com": "2025-08-21",
+          "data_pagamento": "2025-11-21",
+          "valor": 0.335962,
+          "tipo": "JRS CAP PROPRIO"
+        },
+        {
+          "data_com": "2025-08-21",
+          "data_pagamento": "2025-12-22",
+          "valor": 0.13504,
+          "tipo": "JRS CAP PROPRIO"
+        },
+        {
+          "data_com": "2025-06-02",
+          "data_pagamento": "2025-09-22",
+          "valor": 0.308447,
+          "tipo": "DIVIDENDO"
+        },
+        {
+          "data_com": "2025-06-02",
+          "data_pagamento": "2025-08-20",
+          "valor": 0.454583,
+          "tipo": "JRS CAP PROPRIO"
+        },
+        {
+          "data_com": "2025-06-02",
+          "data_pagamento": "2025-09-22",
+          "valor": 0.146136,
+          "tipo": "JRS CAP PROPRIO"
+        },
+        {
+          "data_com": "2025-04-16",
+          "data_pagamento": "2025-05-20",
+          "valor": 0.354773,
+          "tipo": "DIVIDENDO"
+        },
+        {
+          "data_com": "2025-04-16",
+          "data_pagamento": "2025-06-20",
+          "valor": 0.354773,
+          "tipo": "DIVIDENDO"
+        },
+        {
+          "data_com": "2025-04-16",
+          "data_pagamento": "2025-05-20",
+          "valor": 0.01706,
+          "tipo": "RENDIMENTO"
+        },
+        {
+          "data_com": "2025-04-16",
+          "data_pagamento": "2025-06-20",
+          "valor": 0.021525,
+          "tipo": "RENDIMENTO"
+        }
+      ],
+      "proventos_total_12m": 3.272428
+    }
+  ],
+  "tesouro": [
+    {
+      "codigo": "NTNBP20290515",
+      "nome": "Tesouro IPCA+ 2029",
+      "vencimento": "2029-05-15",
+      "investivel": true
+    },
+    {
+      "codigo": "NTNBP20400815",
+      "nome": "Tesouro IPCA+ 2040",
+      "vencimento": "2040-08-15",
+      "investivel": true
+    },
+    {
+      "codigo": "NTNBP20500815",
+      "nome": "Tesouro IPCA+ 2050",
+      "vencimento": "2050-08-15",
+      "investivel": true
+    },
+    {
+      "codigo": "NTNB20350515",
+      "nome": "Tesouro IPCA+ com Juros Semestrais 2035",
+      "vencimento": "2035-05-15",
+      "investivel": true
+    },
+    {
+      "codigo": "NTNB20450515",
+      "nome": "Tesouro IPCA+ com Juros Semestrais 2045",
+      "vencimento": "2045-05-15",
+      "investivel": true
+    },
+    {
+      "codigo": "NTNB20600815",
+      "nome": "Tesouro IPCA+ com Juros Semestrais 2060",
+      "vencimento": "2060-08-15",
+      "investivel": true
+    },
+    {
+      "codigo": "NTNF20350101",
+      "nome": "Tesouro Prefixado com Juros Semestrais 2035",
+      "vencimento": "2035-01-01",
+      "investivel": true
+    }
+  ],
+  "_meta": {
+    "usou_fallback": true
+  }
+}
