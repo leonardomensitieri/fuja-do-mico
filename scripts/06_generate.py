@@ -284,7 +284,7 @@ def main():
 
     # Metadados do pipeline
     resultado['data_geracao'] = datetime.now().strftime('%d/%m/%Y às %H:%M')
-    resultado['acoes_brapi'] = acoes[:6]  # mantido para referência futura
+    resultado['acoes_brapi'] = acoes_brapi[:6]  # mantido para referência futura
 
     salvar_resultado(resultado, 'conteudo_gerado.json')
 
