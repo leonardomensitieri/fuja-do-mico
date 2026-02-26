@@ -141,7 +141,7 @@ def main():
     print("📨 Iniciando distribuição via Brevo...")
 
     api_key = os.environ.get('BREVO_API_KEY')
-    list_id_str = os.environ.get('BREVO_LIST_ID', '2')
+    list_id_str = os.environ.get('BREVO_LIST_ID', '').strip() or '2'
     email_remetente = os.environ.get('EMAIL_REMETENTE', 'leonardoabrreu@gmail.com')
     nome_remetente = os.environ.get('NOME_REMETENTE', 'Liga HUB Finance')
 
