@@ -213,7 +213,7 @@ def agente_conteudo(contexto: dict, clones_texto: str, cliente: anthropic.Anthro
 """
     resposta = cliente.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4096,
+        max_tokens=8000,
         messages=[{"role": "user", "content": prompt_final}]
     )
     return extrair_json(resposta.content[0].text.strip(), 'agente_conteudo')
