@@ -460,6 +460,29 @@ def executar_notificacao() -> bool:
 
 
 # ──────────────────────────────────────────────────────────────
+# ATUALIZAÇÃO DE STATUS EM TEMPO REAL (Story 2.3)
+# ──────────────────────────────────────────────────────────────
+
+def atualizar_status(status: str):
+    """
+    Atualiza o status da edição no Supabase em tempo real.
+    Chamado a cada fase do pipeline para mover o card no Kanban.
+    Silencioso em caso de falha — nunca aborta o pipeline.
+    """
+    if not (os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY')):
+        return
+    try:
+        from db_provider import get_client
+        _sb = get_client()
+        if _sb:
+            edicao_id = os.environ.get('EDICAO_ID')
+            _sb.table('edicoes').update({'status': status}).eq('id', edicao_id).execute()
+            print(f"  📊 Status atualizado → {status}")
+    except Exception as e:
+        print(f"  ⚠️  Falha ao atualizar status ({e}) — continuando")
+
+
+# ──────────────────────────────────────────────────────────────
 # RELATÓRIO DE ORQUESTRAÇÃO
 # ──────────────────────────────────────────────────────────────
 
@@ -540,6 +563,7 @@ def main():
 
     # Inicializar relatório
     report = {
+        'edicao_id': edicao_id,
         'edicao_numero': edicao_numero,
         'data_execucao': datetime.now().isoformat(),
         'coleta': {},
@@ -559,14 +583,27 @@ def main():
         tickers_raw = os.environ.get('TICKERS', 'PETR4,VALE3,ITUB4,BBDC4,WEGE3')
         tickers_base = [t.strip() for t in tickers_raw.split(',') if t.strip()]
 
+        # Criar registro da edição no Supabase logo no início (para Realtime funcionar)
+        if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+            try:
+                from db_provider import get_client, salvar_edicao
+                _sb = get_client()
+                if _sb:
+                    salvar_edicao(_sb, numero=int(edicao_numero) if str(edicao_numero).isdigit() else 0,
+                                  id=edicao_id, status='em_coleta')
+            except Exception as e:
+                print(f"  ⚠️  Falha ao criar edição no Supabase ({e}) — continuando")
+
         # FASE 1 — Coleta de conteúdo (Gmail, RSS, YouTube)
         print("\n\n═══ FASE 1: COLETA DE CONTEÚDO ═══")
+        atualizar_status('em_coleta')
         coleta = executar_coleta_conteudo()
         report['coleta'] = coleta
         print(f"\n  Resumo coleta: {coleta}")
 
         # FASE 2 — Triagem
         print("\n\n═══ FASE 2: TRIAGEM ═══")
+        atualizar_status('triagem')
         triagem = executar_triagem()
         report['triagem'] = triagem
         print(f"\n  Resumo triagem: {triagem}")
@@ -645,6 +682,7 @@ def main():
 
         # FASE 3 — Geração de conteúdo
         print("\n\n═══ FASE 3: GERAÇÃO DE CONTEÚDO ═══")
+        atualizar_status('geracao')
         if not executar_geracao(node_config):
             raise RuntimeError("Geração de conteúdo falhou")
 
@@ -662,6 +700,7 @@ def main():
 
         # FASE 5 — Notificação
         print("\n\n═══ FASE 5: NOTIFICAÇÃO ═══")
+        atualizar_status('aguardando_aprovacao')
         executar_notificacao()  # Não bloqueia mesmo se falhar
 
         # Salvar relatório final
