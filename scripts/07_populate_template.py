@@ -27,9 +27,12 @@ Identidade visual aplicada pelos renderers:
   - checklist: ☐ custom, separadores entre itens
 """
 
+import base64
 import json
 import os
 import random
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
@@ -194,6 +197,65 @@ def render_list(s: dict) -> str:
     )
 
 
+def _mermaid_url(code: str) -> str:
+    """Monta a URL da imagem mermaid.ink para o código fornecido."""
+    config = {'code': code, 'mermaid': {'theme': 'default'}}
+    encoded = base64.b64encode(json.dumps(config).encode()).decode()
+    return f'https://mermaid.ink/img/{encoded}'
+
+
+def render_mermaid(s: dict) -> str:
+    """Diagrama Mermaid — renderiza como imagem via mermaid.ink. Fallback: <pre>."""
+    code = s.get('code', '').strip()
+    caption = s.get('caption', '')
+    if not code:
+        return ''
+    try:
+        img_url = _mermaid_url(code)
+        urllib.request.urlopen(img_url, timeout=10)  # Valida que a imagem existe
+        caption_html = (
+            f'<p style="font-size:12px; color:#999999; text-align:center; '
+            f'margin:4px 0 18px 0;">{caption}</p>'
+        ) if caption else '<br>'
+        return (
+            f'<div style="text-align:center; margin:0 0 18px 0;">'
+            f'<img src="{img_url}" alt="Diagrama Mermaid" '
+            f'style="max-width:100%; height:auto; border:1px solid #e0e0e0;">'
+            f'</div>'
+            f'{caption_html}'
+        )
+    except Exception as e:
+        print(f'  ⚠️  mermaid.ink indisponível ({e}) — renderizando como código')
+        caption_html = (
+            f'<p style="font-size:12px; color:#999999; margin:0 0 18px 0;">{caption}</p>'
+        ) if caption else ''
+        return (
+            f'<pre style="background:#f5f5f5; padding:12px; font-size:13px; '
+            f'overflow-x:auto; margin:0 0 18px 0; border:1px solid #e0e0e0;">{code}</pre>'
+            f'{caption_html}'
+        )
+
+
+def render_image(s: dict) -> str:
+    """Imagem por URL — selecionada manualmente ou gerada automaticamente."""
+    url = s.get('url', '').strip()
+    if not url:
+        return ''
+    alt = s.get('alt', 'Imagem da newsletter')
+    caption = s.get('caption', '')
+    caption_html = (
+        f'<p style="font-size:12px; color:#999999; text-align:center; '
+        f'margin:4px 0 18px 0;">{caption}</p>'
+    ) if caption else '<br>'
+    return (
+        f'<div style="text-align:center; margin:0 0 18px 0;">'
+        f'<img src="{url}" alt="{alt}" '
+        f'style="max-width:100%; height:auto;">'
+        f'</div>'
+        f'{caption_html}'
+    )
+
+
 # Mapa type → renderer
 SECTION_RENDERERS = {
     'h1':         render_h1,
@@ -207,6 +269,8 @@ SECTION_RENDERERS = {
     'table':      render_table,
     'checklist':  render_checklist,
     'list':       render_list,
+    'mermaid':    render_mermaid,
+    'image':      render_image,
 }
 
 
@@ -226,16 +290,13 @@ def renderizar_secoes(sections: list) -> str:
     return '\n\n'.join(partes)
 
 
-def salvar_resultado(dados: dict, arquivo: str):
+def salvar_resultado(dados: dict, arquivo: str, edicao_id: str = None):
     """
     Persiste resultado localmente e no banco (se configurado).
-    Extensível: adicionar provider de banco aqui no futuro.
+    Retrocompatível: sem SUPABASE_URL, apenas salva o arquivo HTML.
     """
     Path('output').mkdir(exist_ok=True)
     Path(f'output/{arquivo}').write_text(dados['html'], encoding='utf-8')
-    # Persistência no banco (futuro):
-    # if os.environ.get('DATABASE_URL'):
-    #     db_client.save(collection=arquivo, data=dados)
 
 
 def main():

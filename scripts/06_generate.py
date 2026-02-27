@@ -146,6 +146,37 @@ def resumir_dados_brapi(acoes: list) -> str:
     return resumir_dados_mercado(acoes, {})
 
 
+def _carregar_conteudo_agentes_linha() -> str:
+    """
+    Carrega o conteúdo gerado pelos agentes de linha (05c_run_line_agents.py).
+    Retorna string formatada para injeção no contexto do agente_conteudo.
+    Fallback: string vazia se o arquivo não existir (retrocompatível).
+    """
+    path = Path('data/conteudo_por_linha.json')
+    if not path.exists():
+        return ''
+
+    try:
+        por_linha = json.loads(path.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, IOError):
+        return ''
+
+    if not por_linha:
+        return ''
+
+    partes = []
+    for linha_id, dados in sorted(por_linha.items()):
+        conf = dados.get('confidence', 0)
+        stop = dados.get('stop_reason', '')
+        output = dados.get('output', '')
+        partes.append(
+            f"### {linha_id.upper()} (confiança: {conf:.0%}, stop: {stop})\n\n{output}"
+        )
+
+    print(f"  [06] Conteúdo de {len(por_linha)} agente(s) de linha carregado")
+    return '\n\n---\n\n'.join(partes)
+
+
 def extrair_json(texto: str, agente: str) -> dict:
     """Extrai e parseia o JSON da resposta do agente operacional."""
     inicio = texto.find('{')
@@ -197,16 +228,25 @@ def agente_conteudo(contexto: dict, clones_texto: str, cliente: anthropic.Anthro
     prompt = carregar_prompt_agente('agente-conteudo')
     prompt_com_clones = prompt.replace('{{CLONES}}', clones_texto) if '{{CLONES}}' in prompt else prompt
 
+    # Seção de agentes de linha: usa output especializado se disponível
+    conteudo_agentes = contexto.get('conteudo_agentes_linha', '')
+    secao_agentes = (
+        f"\n## Conteúdo Gerado pelos Agentes de Linha (use como base principal)\n{conteudo_agentes}"
+        if conteudo_agentes
+        else "\n## Conteúdo Gerado pelos Agentes de Linha\nNão disponível — use o conteúdo triado abaixo."
+    )
+
     prompt_final = f"""{prompt_com_clones}
 
 ## Tema da Edição
 {contexto['tema']}
 
-## Dados Financeiros Disponíveis (Brapi)
+## Dados Financeiros Disponíveis (Brapi + Fintz)
 {contexto['dados_brapi']}
 
 ## Conteúdo Selecionado na Triagem
 {contexto['conteudo_triado']}
+{secao_agentes}
 
 ## Clones de Investidores Disponíveis (use apenas se o tema pedir)
 {clones_texto}
@@ -223,19 +263,26 @@ def agente_conteudo(contexto: dict, clones_texto: str, cliente: anthropic.Anthro
 # SALVAMENTO
 # =============================================================================
 
-def salvar_resultado(dados: dict, arquivo: str):
+def salvar_resultado(dados: dict, arquivo: str, edicao_id: str = None):
     """
     Persiste resultado localmente e no banco (se configurado).
-    Extensível: adicionar provider de banco aqui no futuro.
+    Retrocompatível: sem SUPABASE_URL, apenas salva o arquivo JSON.
     """
     Path('data').mkdir(exist_ok=True)
     Path(f'data/{arquivo}').write_text(
         json.dumps(dados, ensure_ascii=False, indent=2),
         encoding='utf-8'
     )
-    # Persistência no banco (futuro):
-    # if os.environ.get('DATABASE_URL'):
-    #     db_client.save(collection=arquivo, data=dados)
+    # Persistência no banco — ativa com SUPABASE_URL (Story 2.2)
+    if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+        try:
+            from db_provider import get_client, _rotear_para_supabase
+            supabase = get_client()
+            if supabase:
+                edicao_id = edicao_id or os.environ.get('EDICAO_ID')
+                _rotear_para_supabase(supabase, dados, arquivo, edicao_id)
+        except Exception as e:
+            print(f'  ⚠️  Supabase indisponível ({e}) — continuando sem persistência')
 
 
 # =============================================================================
@@ -271,6 +318,10 @@ def main():
         'dados_brapi': resumir_dados_mercado(acoes_brapi, dados_fintz),
         'tipo_edicao': 'completa',
     }
+
+    # Carrega conteúdo dos agentes de linha se disponível (Story 1.12)
+    conteudo_agentes_linha = _carregar_conteudo_agentes_linha()
+    contexto['conteudo_agentes_linha'] = conteudo_agentes_linha
 
     cliente = anthropic.Anthropic(api_key=api_key)
     resultado = {}

@@ -30,19 +30,26 @@ QUERIES_BUSCA = [
 ]
 
 
-def salvar_resultado(dados: list, arquivo: str):
+def salvar_resultado(dados: list, arquivo: str, edicao_id: str = None):
     """
     Persiste resultado localmente e no banco (se configurado).
-    Extensível: adicionar provider de banco aqui no futuro.
+    Retrocompatível: sem SUPABASE_URL, apenas salva o arquivo JSON.
     """
     Path('data').mkdir(exist_ok=True)
     Path(f'data/{arquivo}').write_text(
         json.dumps(dados, ensure_ascii=False, indent=2),
         encoding='utf-8'
     )
-    # Persistência no banco (futuro):
-    # if os.environ.get('DATABASE_URL'):
-    #     db_client.save(collection=arquivo, data=dados)
+    # Persistência no banco — ativa com SUPABASE_URL (Story 2.2)
+    if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+        try:
+            from db_provider import get_client, _rotear_para_supabase
+            supabase = get_client()
+            if supabase:
+                edicao_id = edicao_id or os.environ.get('EDICAO_ID')
+                _rotear_para_supabase(supabase, dados, arquivo, edicao_id)
+        except Exception as e:
+            print(f'  ⚠️  Supabase indisponível ({e}) — continuando sem persistência')
 
 
 def main():
