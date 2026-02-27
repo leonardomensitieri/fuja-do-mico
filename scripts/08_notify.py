@@ -228,17 +228,19 @@ def enviar_telegram(token: str, chat_id: str, mensagem: str, run_id: str = '', e
         corpo = e.read().decode('utf-8')
         print(f"  ⚠️  Telegram HTTPError {e.code}: {corpo}")
         # Fallback sem MarkdownV2 (pode ter caractere especial não escapado)
-        return _enviar_telegram_simples(token, chat_id, mensagem)
+        return _enviar_telegram_simples(token, chat_id, mensagem, run_id, edicao_id)
 
     except Exception as e:
         print(f"  ⚠️  Erro ao enviar Telegram: {e}")
         return False
 
 
-def _enviar_telegram_simples(token: str, chat_id: str, mensagem: str) -> bool:
+def _enviar_telegram_simples(token: str, chat_id: str, mensagem: str,
+                             run_id: str = '', edicao_id: str = '') -> bool:
     """
     Fallback sem MarkdownV2 — envia texto puro caso a formatação falhe.
     Remove os marcadores de formatação antes de enviar.
+    Mantém os botões inline mesmo no fallback.
     """
     import re
     texto_puro = re.sub(r'[*_`\[\]\\]', '', mensagem)
@@ -249,6 +251,9 @@ def _enviar_telegram_simples(token: str, chat_id: str, mensagem: str) -> bool:
         'chat_id': chat_id,
         'text': texto_puro,
     }
+    # Botões inline mesmo no fallback — essenciais para aprovação
+    if run_id and edicao_id:
+        payload['reply_markup'] = montar_inline_keyboard(run_id, edicao_id)
 
     dados = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
