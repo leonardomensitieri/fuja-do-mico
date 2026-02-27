@@ -44,6 +44,7 @@ export type Edicao = {
     | 'aguardando_aprovacao'
     | 'distribuida'
     | 'abortada'
+  github_run_id: string | null
   criada_em: string
   atualizada_em: string
 }

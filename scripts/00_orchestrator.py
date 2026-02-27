@@ -589,8 +589,13 @@ def main():
                 from db_provider import get_client, salvar_edicao
                 _sb = get_client()
                 if _sb:
-                    salvar_edicao(_sb, numero=int(edicao_numero) if str(edicao_numero).isdigit() else 0,
-                                  id=edicao_id, status='em_coleta')
+                    salvar_edicao(
+                        _sb,
+                        numero=int(edicao_numero) if str(edicao_numero).isdigit() else 0,
+                        id=edicao_id,
+                        status='em_coleta',
+                        github_run_id=os.environ.get('GITHUB_RUN_ID'),
+                    )
             except Exception as e:
                 print(f"  ⚠️  Falha ao criar edição no Supabase ({e}) — continuando")
 

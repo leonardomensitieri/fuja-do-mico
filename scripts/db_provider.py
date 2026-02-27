@@ -39,13 +39,15 @@ def get_client():
 
 def salvar_edicao(supabase, numero: int, titulo: str = None,
                   tipo_edicao: str = None, status: str = 'em_coleta',
-                  id: str = None) -> Optional[str]:
+                  id: str = None, github_run_id: str = None) -> Optional[str]:
     """
     Upsert na tabela edicoes.
     Retorna o UUID da edição criada/atualizada, ou None em caso de falha.
 
     Parâmetro id: quando fornecido, garante que o Supabase usa o mesmo UUID
     já propagado via os.environ['EDICAO_ID'], evitando violação de FK com execucoes.
+    Parâmetro github_run_id: ID do run do GitHub Actions — usado para aprovação via
+    Telegram e dashboard (Story 2.4).
     """
     upsert_data = {
         'numero': numero,
@@ -55,6 +57,8 @@ def salvar_edicao(supabase, numero: int, titulo: str = None,
     }
     if id:
         upsert_data['id'] = id
+    if github_run_id:
+        upsert_data['github_run_id'] = github_run_id
     resultado = supabase.table('edicoes').upsert(
         upsert_data, on_conflict='numero'
     ).execute()

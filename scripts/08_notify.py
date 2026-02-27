@@ -53,6 +53,17 @@ def carregar_relatorio_orquestracao() -> dict:
     return {}
 
 
+def carregar_flag_sensibilidade() -> dict:
+    """Lê data/sensibilidade_flag.json se existir. Retrocompatível: retorna {} se ausente."""
+    path = Path('data/sensibilidade_flag.json')
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding='utf-8'))
+        except (json.JSONDecodeError, IOError):
+            return {}
+    return {}
+
+
 def montar_contexto_financeiro(report: dict) -> str:
     """
     Extrai informações do gate financeiro do relatório do orquestrador
@@ -117,6 +128,22 @@ def montar_mensagem(conteudo: dict, report: dict, url: str) -> str:
     # Contexto financeiro (pode ser vazio)
     ctx_financeiro = montar_contexto_financeiro(report)
 
+    # Flag de sensibilidade (Story 1.13) — retrocompatível: {} se ausente
+    flag = carregar_flag_sensibilidade()
+    nivel_sensibilidade = flag.get('nivel', 'nenhum')
+
+    prefixo = ''
+    sufixo_disclaimer = ''
+    if nivel_sensibilidade == 'alto':
+        flags_txt = '\n'.join([f'  • {f}' for f in flag.get('flags', [])])
+        prefixo = f'⚠️ *ALERTA: conteúdo sensível detectado*\n{flags_txt}\n\n'
+    elif nivel_sensibilidade == 'medio':
+        disclaimer = flag.get(
+            'disclaimer',
+            'Este conteúdo tem caráter exclusivamente educacional e não constitui recomendação de investimento.',
+        )
+        sufixo_disclaimer = f'\n\n📋 _Disclaimer automático aplicado: {disclaimer}_'
+
     # Bloco de protocolo de escalada humana
     escalada = (
         "\n\n❓ *Precisa de dados adicionais?*\n"
@@ -127,6 +154,7 @@ def montar_mensagem(conteudo: dict, report: dict, url: str) -> str:
     )
 
     mensagem = (
+        f"{prefixo}"
         f"{tipo_emoji} *Liga HUB Finance — Edição pronta para revisão*\n\n"
         f"*{titulo}*\n"
         f"⏱ Tempo de leitura: {tempo}\n"
@@ -135,14 +163,35 @@ def montar_mensagem(conteudo: dict, report: dict, url: str) -> str:
         f"{escalada}\n\n"
         f"👉 [Revisar e Aprovar no GitHub]({url})\n\n"
         f"_Clique em \"Review deployments\" → selecione \"aprovacao\\-humana\" → Approve_"
+        f"{sufixo_disclaimer}"
     )
 
     return mensagem
 
 
-def enviar_telegram(token: str, chat_id: str, mensagem: str) -> bool:
+def montar_inline_keyboard(run_id: str, edicao_id: str) -> dict:
+    """
+    Monta teclado inline com botões de Aprovar e Rejeitar.
+    O callback_data embute run_id e edicao_id para o webhook identificar a edição.
+    """
+    return {
+        'inline_keyboard': [[
+            {
+                'text': '✅ Aprovar',
+                'callback_data': f'approve:{run_id}:{edicao_id}'
+            },
+            {
+                'text': '❌ Rejeitar',
+                'callback_data': f'reject:{run_id}:{edicao_id}'
+            }
+        ]]
+    }
+
+
+def enviar_telegram(token: str, chat_id: str, mensagem: str, run_id: str = '', edicao_id: str = '') -> bool:
     """
     Envia mensagem via API do Telegram Bot.
+    Inclui botões inline de aprovação quando run_id e edicao_id estão disponíveis.
     Usa urllib (sem dependências externas).
     """
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -152,6 +201,10 @@ def enviar_telegram(token: str, chat_id: str, mensagem: str) -> bool:
         'parse_mode': 'MarkdownV2',
         'disable_web_page_preview': False,
     }
+
+    # Adiciona botões inline se run_id disponível (Story 2.4)
+    if run_id and edicao_id:
+        payload['reply_markup'] = montar_inline_keyboard(run_id, edicao_id)
 
     dados = json.dumps(payload).encode('utf-8')
     req = urllib.request.Request(
@@ -219,19 +272,26 @@ def _enviar_telegram_simples(token: str, chat_id: str, mensagem: str) -> bool:
         return False
 
 
-def salvar_resultado(dados: dict, arquivo: str):
+def salvar_resultado(dados: dict, arquivo: str, edicao_id: str = None):
     """
     Persiste resultado localmente e no banco (se configurado).
-    Extensível: adicionar provider de banco aqui no futuro.
+    Retrocompatível: sem SUPABASE_URL, apenas salva o arquivo JSON.
     """
     Path('data').mkdir(exist_ok=True)
     Path(f'data/{arquivo}').write_text(
         json.dumps(dados, ensure_ascii=False, indent=2),
         encoding='utf-8'
     )
-    # Persistência no banco (futuro):
-    # if os.environ.get('DATABASE_URL'):
-    #     db_client.save(collection=arquivo, data=dados)
+    # Persistência no banco — ativa com SUPABASE_URL (Story 2.2)
+    if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+        try:
+            from db_provider import get_client, _rotear_para_supabase
+            supabase = get_client()
+            if supabase:
+                edicao_id = edicao_id or os.environ.get('EDICAO_ID')
+                _rotear_para_supabase(supabase, dados, arquivo, edicao_id)
+        except Exception as e:
+            print(f'  ⚠️  Supabase indisponível ({e}) — continuando sem persistência')
 
 
 def main():
@@ -249,8 +309,10 @@ def main():
     enviado = False
 
     if token and chat_id:
+        run_id = os.environ.get('GITHUB_RUN_ID', '')
+        edicao_id = os.environ.get('EDICAO_ID', '')
         mensagem = montar_mensagem(conteudo, report, url)
-        enviado = enviar_telegram(token, chat_id, mensagem)
+        enviado = enviar_telegram(token, chat_id, mensagem, run_id=run_id, edicao_id=edicao_id)
     else:
         print("  ⚠️  TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID não configurados")
 
