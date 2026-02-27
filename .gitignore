@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Dados gerados pelo pipeline (não versionar)
+data/
+output/
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Credenciais OAuth Gmail
+token.json
+credentials.json
+
+# Next.js
+dashboard/.next/
+dashboard/node_modules/
+dashboard/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
