@@ -86,6 +86,14 @@ jobs:
           # Metadados GitHub Actions (para link de aprovação)
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          # Banco de dados Supabase — Story 2.2 (opcional: sem essas vars, pipeline funciona normalmente)
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_SALVAR_CONTEUDO: ${{ secrets.SUPABASE_SALVAR_CONTEUDO }}
+          # Coleta social via Apify — Story 2.1 (opcional)
+          APIFY_API_TOKEN: ${{ secrets.APIFY_API_TOKEN }}
+          SOCIAL_PROFILES: ${{ secrets.SOCIAL_PROFILES }}
+          SOCIAL_MAX_POSTS: ${{ secrets.SOCIAL_MAX_POSTS }}
         run: python scripts/00_orchestrator.py
 
       # Salva os artefatos gerados para o job de distribuição
@@ -154,6 +162,8 @@ jobs:
           BREVO_LIST_ID: ${{ secrets.BREVO_LIST_ID }}
           EMAIL_REMETENTE: ${{ secrets.EMAIL_REMETENTE }}
           NOME_REMETENTE: ${{ secrets.NOME_REMETENTE }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/09_distribute.py
 
       - name: "✅ Confirmar envio"

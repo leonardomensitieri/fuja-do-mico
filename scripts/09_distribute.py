@@ -176,6 +176,27 @@ def main():
 
     print(f"✅ Newsletter enviada! Campanha ID: {campanha_id}")
 
+    # Atualizar status para 'distribuida' no Supabase (Realtime Dashboard)
+    if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent))
+            from db_provider import get_client
+            _sb = get_client()
+            if _sb:
+                # EDICAO_ID vem do orchestration_report.json (passado via artifact entre jobs)
+                edicao_id = os.environ.get('EDICAO_ID')
+                if not edicao_id:
+                    report_path = Path('data/orchestration_report.json')
+                    if report_path.exists():
+                        report_data = json.loads(report_path.read_text(encoding='utf-8'))
+                        edicao_id = report_data.get('edicao_id')
+                if edicao_id:
+                    _sb.table('edicoes').update({'status': 'distribuida'}).eq('id', edicao_id).execute()
+                    print("  📊 Status atualizado → distribuida")
+        except Exception as e:
+            print(f"  ⚠️  Falha ao atualizar status ({e}) — continuando")
+
 
 if __name__ == '__main__':
     main()
