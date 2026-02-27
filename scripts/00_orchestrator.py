@@ -515,13 +515,14 @@ def salvar_orchestration_report(dados: dict):
                 tipo = dados.get('decisao', {}).get('tipo_edicao')
                 sucesso = tipo not in ('abortado', None)
                 # Upsert edição — id=edicao_id garante FK consistency com execucoes
+                # Status: aguardando_aprovacao (Job 1 termina aqui, Job 3 atualiza para 'distribuida')
                 salvar_edicao(
                     supabase,
                     numero=edicao_numero,
                     id=edicao_id,
                     titulo=dados.get('decisao', {}).get('justificativa', '')[:200],
                     tipo_edicao=tipo if tipo in ('completa', 'reduzida', 'abortada') else None,
-                    status='distribuida' if sucesso else 'abortada',
+                    status='aguardando_aprovacao' if sucesso else 'abortada',
                 )
                 # Registra execução com relatório completo
                 salvar_execucao(supabase, edicao_id, dados, sucesso)
