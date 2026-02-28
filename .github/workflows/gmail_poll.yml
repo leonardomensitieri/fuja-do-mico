@@ -17,10 +17,10 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependências
-        run: pip install -r fuja-do-mico-gh/requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Coletar newsletters Gmail e gravar em conteudo_raw
-        run: python fuja-do-mico-gh/scripts/01_collect_gmail.py
+        run: python scripts/01_collect_gmail.py
         env:
           GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
           GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}

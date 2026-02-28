@@ -17,10 +17,10 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependências
-        run: pip install -r fuja-do-mico-gh/requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Coletar feeds RSS e gravar em conteudo_raw
-        run: python fuja-do-mico-gh/scripts/02_collect_rss.py
+        run: python scripts/02_collect_rss.py
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
