@@ -1,0 +1,28 @@
+name: Node Gmail — Poll Horário
+
+on:
+  schedule:
+    - cron: '30 * * * *'  # A cada hora, no minuto 30 (offset do RSS para evitar colisão)
+  workflow_dispatch:       # Permite execução manual para testes
+
+jobs:
+  collect-gmail:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install -r fuja-do-mico-gh/requirements.txt
+
+      - name: Coletar newsletters Gmail e gravar em conteudo_raw
+        run: python fuja-do-mico-gh/scripts/01_collect_gmail.py
+        env:
+          GMAIL_CREDENTIALS_JSON: ${{ secrets.GMAIL_CREDENTIALS_JSON }}
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
