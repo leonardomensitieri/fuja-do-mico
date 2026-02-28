@@ -21,20 +21,16 @@ def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> st
     """
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
-        from youtube_transcript_api.proxies import GenericProxiesConfig
 
         apify_token = os.environ.get('APIFY_API_TOKEN')
         if apify_token:
-            # Proxy residencial Apify — não bloqueado pelo YouTube
+            # Proxy residencial Apify via env vars — funciona com qualquer versão
+            # da biblioteca pois requests respeita HTTP_PROXY/HTTPS_PROXY
             proxy_url = f'http://auto:{apify_token}@proxy.apify.com:8000'
-            proxies_config = GenericProxiesConfig(
-                http_url=proxy_url,
-                https_url=proxy_url,
-            )
-            api = YouTubeTranscriptApi(proxies=proxies_config)
-        else:
-            api = YouTubeTranscriptApi()
+            os.environ['HTTP_PROXY'] = proxy_url
+            os.environ['HTTPS_PROXY'] = proxy_url
 
+        api = YouTubeTranscriptApi()
         entradas = api.fetch(video_id, languages=['pt', 'pt-BR', 'pt-br', 'en'])
         texto = ' '.join(
             e.text if hasattr(e, 'text') else e['text']
