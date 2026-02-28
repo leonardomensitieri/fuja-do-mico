@@ -1,7 +1,7 @@
 """
 Processor: video_transcriber.py
 ================================
-Tenta obter transcrição de vídeo YouTube via Captions API.
+Obtém transcrição de vídeo YouTube via youtube-transcript-api (sem OAuth).
 Fallback para título + descrição quando legendas indisponíveis.
 
 Detecta Shorts via duração ISO 8601 (< 60s = Short).
@@ -12,43 +12,39 @@ import isodate
 
 def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> str:
     """
-    Tenta baixar transcrição via YouTube Captions API.
-    Fallback: retorna f"{titulo}. {descricao}" se legendas indisponíveis.
-    Note: download de captions requer OAuth — com API key simples, o fallback
-    é o caminho esperado na maioria dos casos.
+    Busca transcrição via youtube-transcript-api (não requer OAuth).
+    Prefere português (pt, pt-BR); aceita qualquer idioma disponível.
+    Fallback: retorna f"{titulo}. {descricao}" se nenhuma legenda disponível.
     """
     try:
-        resp = youtube.captions().list(
-            part='snippet',
-            videoId=video_id
-        ).execute()
-        itens = resp.get('items', [])
+        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
 
-        # Prefere legenda em português; aceita qualquer idioma
-        caption_id = None
-        for item in itens:
-            lang = item['snippet'].get('language', '')
-            if lang.startswith('pt'):
-                caption_id = item['id']
-                break
-        if not caption_id and itens:
-            caption_id = itens[0]['id']
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
-        if caption_id:
-            conteudo = youtube.captions().download(
-                id=caption_id,
-                tfmt='srt'
-            ).execute()
-            # Remove timestamps do SRT e retorna texto limpo
-            import re
-            texto = re.sub(r'\d+\n\d{2}:\d{2}:\d{2},\d+ --> \d{2}:\d{2}:\d{2},\d+\n', '', conteudo)
-            texto = re.sub(r'\n{2,}', ' ', texto).strip()
+        # Prefere transcrição em português; aceita qualquer outro idioma
+        transcript = None
+        try:
+            transcript = transcript_list.find_transcript(['pt', 'pt-BR', 'pt-br'])
+        except NoTranscriptFound:
+            try:
+                # Tenta legenda gerada automaticamente em português
+                transcript = transcript_list.find_generated_transcript(['pt', 'pt-BR', 'pt-br'])
+            except NoTranscriptFound:
+                # Pega qualquer transcrição disponível
+                for t in transcript_list:
+                    transcript = t
+                    break
+
+        if transcript:
+            entries = transcript.fetch()
+            texto = ' '.join(entry['text'] for entry in entries).strip()
             if texto:
                 return texto
-    except Exception:
-        pass  # Fallback silencioso — comportamento esperado com API key simples
 
-    # Fallback: título + descrição (idêntico ao 03_collect_youtube.py)
+    except Exception:
+        pass  # Fallback silencioso — canal sem legendas ou erro de rede
+
+    # Fallback: título + descrição
     return f"{titulo}. {descricao}".strip()
 
 

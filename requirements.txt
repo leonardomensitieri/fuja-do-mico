@@ -25,3 +25,6 @@ supabase>=2.0.0
 # ── Utilitários ──
 python-dateutil>=2.8.2
 isodate>=0.6.1
+
+# ── Transcrições YouTube (sem OAuth) ──
+youtube-transcript-api>=0.6.2
