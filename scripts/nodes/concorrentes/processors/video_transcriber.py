@@ -30,10 +30,10 @@ def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> st
         ).strip()
         if texto:
             return texto
-    except Exception:
-        pass  # Fallback silencioso — vídeo sem legenda disponível
+    except Exception as e:
+        print(f'    ⚠️  Transcrição falhou ({video_id}): {type(e).__name__}: {e}')
 
-    return f"{titulo}. {descricao}".strip()
+    return f"{titulo}\n\n{descricao}".strip()
 
 
 def is_short(duration_iso: str) -> bool:
