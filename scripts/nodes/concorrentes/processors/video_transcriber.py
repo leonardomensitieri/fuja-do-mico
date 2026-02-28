@@ -19,11 +19,9 @@ def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> st
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
 
-        entradas = YouTubeTranscriptApi.get_transcript(
-            video_id,
-            languages=['pt', 'pt-BR', 'pt-br', 'en']
-        )
-        # Compatível com v0.x (dict) e v1.x (objeto com .text)
+        # v1.x: instanciar a classe e usar .fetch()
+        api = YouTubeTranscriptApi()
+        entradas = api.fetch(video_id, languages=['pt', 'pt-BR', 'pt-br', 'en'])
         texto = ' '.join(
             e.text if hasattr(e, 'text') else e['text']
             for e in entradas
