@@ -154,16 +154,21 @@ def coletar_canal(youtube, supabase, canal: dict) -> int:
                 print(f'    ⏭️  Excluído (@vowtz): {titulo[:60]}')
                 continue
 
-            # Busca duração para detectar Short
+            # Busca duração (contentDetails) e métricas (statistics) numa única chamada
             duracao_iso = 'PT0S'
+            view_count = 0
+            like_count = 0
             try:
                 vresp = youtube.videos().list(
-                    part='contentDetails',
+                    part='contentDetails,statistics',
                     id=video_id
                 ).execute()
                 vitens = vresp.get('items', [])
                 if vitens:
                     duracao_iso = vitens[0]['contentDetails'].get('duration', 'PT0S')
+                    stats = vitens[0].get('statistics', {})
+                    view_count = int(stats.get('viewCount', 0))
+                    like_count = int(stats.get('likeCount', 0))
             except Exception:
                 pass
 
@@ -179,16 +184,19 @@ def coletar_canal(youtube, supabase, canal: dict) -> int:
                         'fonte': 'youtube',
                         'plataforma': 'youtube',
                         'tipo_conteudo': tipo,
+                        'titulo': titulo,
                         'conta_origem': handle_clean,
                         'conteudo_texto': conteudo[:8000],
                         'url_original': url,
                         'data_publicacao': publicado_em,
                         'processado': False,
                         'metadata': {
-                            'titulo': titulo,
                             'video_id': video_id,
                             'duracao_iso': duracao_iso,
                             'handle': handle,
+                            'view_count': view_count,
+                            'like_count': like_count,
+                            'descricao': descricao[:500],
                         }
                     }).execute()
                     gravados += 1

@@ -145,10 +145,13 @@ def coletar_conta(supabase, anthropic_client, conta: str) -> int:
             continue
 
         try:
+            # Usa primeira linha da caption como título (máx 120 chars)
+            titulo = (caption.split('\n')[0] or caption)[:120]
             supabase.table('conteudo_raw').insert({
                 'fonte': 'instagram',
                 'plataforma': 'instagram',
                 'tipo_conteudo': tipo_conteudo,
+                'titulo': titulo,
                 'conta_origem': conta_clean,
                 'conteudo_texto': conteudo[:8000],
                 'url_original': url,
