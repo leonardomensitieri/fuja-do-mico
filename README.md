@@ -1,44 +1,114 @@
-# 🐒 Fuja do Mico — GitHub Actions + Python
-### Versão sem n8n, sem servidor, zero dependência visual
+<div align="center">
 
-> Pipeline completo de newsletter financeira automatizada.
-> Roda no GitHub. Zero servidor próprio. Zero plataforma visual.
-> A aprovação humana acontece no GitHub — ou no WhatsApp (opcional).
+# 🐒 Fuja do Mico
+
+**Newsletter financeira gerada por IA — do dado bruto ao inbox, sem servidor próprio.**
+
+[![Python 3.11](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)](https://python.org)
+[![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-Automation-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Claude](https://img.shields.io/badge/Claude-Sonnet_4.6-orange?logo=anthropic&logoColor=white)](https://anthropic.com)
+[![Supabase](https://img.shields.io/badge/Supabase-Pool_Central-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
+[![Vercel](https://img.shields.io/badge/Vercel-Dashboard-black?logo=vercel&logoColor=white)](https://vercel.com)
+
+*Conteúdo educativo — não é recomendação de investimento.*
+
+</div>
 
 ---
 
-## Por que essa versão existe
+## O que é
 
-A versão n8n (pasta `fuja-do-mico/`) funciona, mas tem um teto:
-a lógica fica presa dentro de nodes JSON difíceis de auditar.
-Aqui, **cada passo é um arquivo Python legível**, comentado em português,
-com o raciocínio do decision tree documentado no cabeçalho.
+O **Fuja do Mico** é um pipeline de newsletter financeira totalmente automatizado que roda dentro do GitHub. Nenhum servidor próprio. Nenhuma plataforma visual paga. A edição semanal é gerada, revisada por humano e distribuída sem nenhuma intervenção manual além de um clique de aprovação.
+
+A arquitetura opera em duas camadas:
+
+- **Camada de Escuta Contínua** — 6 nodes assíncronos coletam e classificam conteúdo 24/7, alimentando um pool central no Supabase
+- **Pipeline de Geração** — toda segunda-feira o pipeline consome o pool, passa por agentes ReAct com clones de investidores e gera a edição completa
 
 ---
 
-## Como funciona em 30 segundos
+## Arquitetura
 
 ```
-Toda segunda, 8h (Brasília)
-         ↓
-GitHub Actions dispara automaticamente
-         ↓
-Scripts Python rodam em sequência:
-  01 → Coleta emails das newsletters assinadas (Gmail)
-  02 → Coleta notícias dos feeds RSS
-  03 → Coleta vídeos do YouTube (concorrentes)
-  04 → Coleta dados financeiros da B3 (Brapi)
-  05 → IA faz triagem: ALTO / MEDIO / BAIXO
-  06 → IA gera a edição completa (Claude Sonnet)
-  07 → Popula o template HTML com o conteúdo
-  08 → Manda mensagem no WhatsApp (ou email) avisando que está pronto
-         ↓
-⏸ PAUSA — você recebe o aviso e precisa aprovar
-         ↓
-Você vai no GitHub → Actions → Review deployments → Approve
-         ↓
-  09 → Brevo dispara a newsletter para a lista de inscritos
+┌─────────────────────────────────────────────────────────┐
+│              CAMADA DE ESCUTA CONTÍNUA                  │
+│                                                         │
+│  📰 RSS          → ┐                                    │
+│  📧 Gmail        → ┤                                    │
+│  📺 YouTube      → ┼──→  conteudo_raw  ←──→  Triagem   │
+│  📸 Instagram    → ┤     (Supabase)         (Haiku)     │
+│  🐦 Twitter/X    → ┤                                    │
+│  🔍 Deep Research→ ┘                                    │
+└─────────────────────────────────────────────────────────┘
+                          ↓  pool ≥ 10 itens aprovados
+┌─────────────────────────────────────────────────────────┐
+│              PIPELINE DE GERAÇÃO (segunda 8h BRT)       │
+│                                                         │
+│  Pool →  Gate Editorial → Agentes de Linha → Geração   │
+│          (ALTO/MEDIO)     Graham · Buffett    Claude     │
+│                           Lynch · Barsi      Sonnet     │
+│                           Damodaran                     │
+│                                ↓                        │
+│  Template HTML → Notificação Telegram → Aprovação →    │
+│                                         Brevo           │
+└─────────────────────────────────────────────────────────┘
 ```
+
+---
+
+## Nodes de Coleta
+
+| Node | Frequência | Fonte | Destaques |
+|------|-----------|-------|-----------|
+| **RSS** | A cada hora | Feeds financeiros configuráveis | Grava em `conteudo_raw` com delta incremental |
+| **Gmail** | A cada hora (offset 30min) | Newsletters recebidas | Lê diretamente da caixa de entrada |
+| **YouTube** | A cada hora | 5 canais concorrentes | Playlist API (1 quota/req), detecta Shorts |
+| **Instagram** | A cada 6h | 6 perfis configurados | Carrosséis extraídos slide a slide via Claude Vision |
+| **Twitter/X** | A cada 6h | 3 handles financeiros | Coleta via Apify com delta por conta |
+| **Deep Research** | Domingo 6h UTC | Web (EXA) | ReActAgent com 5 iterações, entrega antes do pipeline |
+
+---
+
+## Pipeline de Geração
+
+```
+conteudo_raw (Supabase)
+    ↓  ≥ 10 itens aprovados
+Gate Editorial
+    ↓  ALTO / MEDIO / BAIXO
+Agentes de Linha (ReActAgent + Claude Sonnet)
+    ├── Graham    → value investing, P/L, P/VP, dívida
+    ├── Buffett   → moat, ROE, margens, EBITDA
+    ├── Lynch     → PEG Ratio, crescimento
+    ├── Damodaran → DCF, WACC, valuation
+    └── Barsi     → dividendos, DY > 6%, proventos
+    ↓
+Geração da edição completa
+    ↓
+Template HTML (visual sections-based)
+    ↓
+Notificação Telegram + Dashboard
+    ↓  aprovação humana
+Distribuição via Brevo
+```
+
+---
+
+## Stack
+
+| Componente | Tecnologia |
+|-----------|-----------|
+| Orquestrador | GitHub Actions |
+| IA principal | Claude Sonnet 4.6 (geração) + Haiku 4.5 (triagem) |
+| IA visual | Claude Vision (carrosséis Instagram) |
+| Busca web | EXA API |
+| Coleta social | Apify (Instagram · Twitter) |
+| Banco de dados | Supabase (PostgreSQL) |
+| Dashboard | Next.js + Vercel |
+| Dados B3 | Brapi · Fintz |
+| Distribuição | Brevo |
+| Notificação | Telegram Bot |
+| Linguagem | Python 3.11 |
 
 ---
 
@@ -46,151 +116,191 @@ Você vai no GitHub → Actions → Review deployments → Approve
 
 ```
 fuja-do-mico-gh/
-├── .github/
-│   └── workflows/
-│       └── newsletter.yml         ← Orquestrador (substitui o n8n)
+├── .github/workflows/
+│   ├── newsletter.yml          ← Pipeline principal (segunda 8h BRT)
+│   ├── rss_poll.yml            ← Node RSS (horário)
+│   ├── gmail_poll.yml          ← Node Gmail (horário, offset 30min)
+│   ├── social_poll.yml         ← Node YouTube/Instagram/Twitter
+│   ├── triage_pool.yml         ← Triagem automática (a cada 2h)
+│   └── research.yml            ← Deep Research (domingo 6h UTC)
+│
 ├── scripts/
-│   ├── 01_collect_gmail.py        ← Worker com API: Gmail
-│   ├── 02_collect_rss.py          ← Worker com API: RSS feeds
-│   ├── 03_collect_youtube.py      ← Worker com API: YouTube
-│   ├── 04_collect_brapi.py        ← Worker com API: Brapi (B3)
-│   ├── 05_triage.py               ← Clone com Heurísticas: triagem
-│   ├── 06_generate.py             ← Clone com Heurísticas: geração
-│   ├── 07_populate_template.py    ← Worker Script: template
-│   ├── 08_notify.py               ← HUMANO: canal de notificação
-│   └── 09_distribute.py           ← Worker com API: Brevo
-├── prompts/
-│   ├── 01-triage.md               ← Prompt de triagem (heurísticas editoriais)
-│   ├── 02-content-generation.md   ← Prompt de geração de conteúdo
-│   └── clones/
-│       └── finance-investments/   ← Clones: Graham · Buffett · Lynch · Damodaran · Barsi
-│           ├── benjamin-graham.md
-│           ├── warren-buffett.md
-│           ├── peter-lynch.md
-│           ├── aswath-damodaran.md
-│           └── luiz-barsi.md
-├── templates/
-│   └── newsletter.html            ← Template visual da newsletter
+│   ├── 00_orchestrator.py      ← Orquestrador do pipeline principal
+│   ├── 01_collect_gmail.py     ← Coleta Gmail
+│   ├── 02_collect_rss.py       ← Coleta RSS
+│   ├── 03_collect_youtube.py   ← Coleta YouTube (pipeline principal)
+│   ├── 04_collect_brapi.py     ← Dados B3 via Brapi
+│   ├── 04b_collect_fintz.py    ← Dados B3 via Fintz (DY, proventos)
+│   ├── 05_triage.py            ← Gate de triagem (Haiku)
+│   ├── 06_generate.py          ← Geração da edição (Sonnet)
+│   ├── 07_populate_template.py ← Renderização HTML
+│   ├── 08_notify.py            ← Notificação Telegram
+│   ├── 09_distribute.py        ← Distribuição Brevo
+│   ├── 12_triage_pool.py       ← Triagem assíncrona do pool
+│   ├── db_provider.py          ← Provider Supabase central
+│   ├── nodes/
+│   │   ├── concorrentes/
+│   │   │   ├── youtube_collector.py    ← Node YouTube contínuo
+│   │   │   ├── instagram_collector.py  ← Node Instagram + Vision
+│   │   │   ├── twitter_collector.py    ← Node Twitter/X
+│   │   │   └── processors/
+│   │   │       ├── carousel_vision.py  ← Extração de slides (Claude Vision)
+│   │   │       └── video_transcriber.py← Transcrição YouTube
+│   │   └── noticias/
+│   │       └── deep_research_agent.py  ← Deep Research (ReActAgent + EXA)
+│   └── react/
+│       ├── agent.py                    ← ReActAgent base
+│       ├── criteria.py                 ← Critérios de parada
+│       ├── tools.py                    ← Interface Tool
+│       └── belt/                       ← Tools: EXA, Brapi, Fintz, ...
+│
+├── prompts/clones/finance-investments/
+│   ├── warren-buffett.md
+│   ├── benjamin-graham.md
+│   ├── peter-lynch.md
+│   ├── aswath-damodaran.md
+│   └── luiz-barsi.md
+│
 ├── config/
-│   └── rss_feeds.txt              ← URLs dos feeds RSS monitorados
-├── requirements.txt
-└── README.md
+│   ├── concorrentes.json       ← Contas Instagram, Twitter e canais YouTube
+│   ├── deep_research_queries.json ← Queries semanais (editável sem código)
+│   └── rss_feeds.txt           ← URLs dos feeds monitorados
+│
+├── supabase/migrations/        ← DDL + RLS do schema
+├── templates/newsletter.html   ← Template visual da newsletter
+├── dashboard/                  ← Next.js (Kanban + Realtime + Chat IA)
+└── requirements.txt
 ```
 
 ---
 
-## Setup em 4 passos
+## Setup
 
-### Passo 1 — Criar o repositório no GitHub
-1. Crie um novo repositório privado no GitHub
-2. Suba todos os arquivos desta pasta
+### 1. Repositório e Environment de Aprovação
 
-### Passo 2 — Configurar o Environment de Aprovação
-Este é o mecanismo que pausa o workflow e exige aprovação humana.
+```bash
+# Clone e suba para o seu GitHub privado
+git clone https://github.com/leonardomensitieri/fuja-do-mico
+```
 
-1. No GitHub: **Settings → Environments → New environment**
-2. Nome: `aprovacao-humana`
-3. Em "Required reviewers": adicione seu usuário GitHub
-4. Salve
+No GitHub: **Settings → Environments → New environment**
+- Nome: `aprovacao-humana`
+- Required reviewers: seu usuário GitHub
 
-Pronto. A partir de agora, quando o workflow chegar no passo de distribuição, ele pausará automaticamente e o GitHub enviará um email para você.
+### 2. Banco de Dados (Supabase)
 
-### Passo 3 — Configurar os Secrets
-No GitHub: **Settings → Secrets and variables → Actions → New repository secret**
+Crie um projeto em [supabase.com](https://supabase.com) e aplique as migrations:
+
+```sql
+-- No SQL Editor do Supabase:
+-- 1. supabase/migrations/20260228000000_fix_fonte_constraint.sql
+-- 2. supabase/migrations/20260228010000_create_conteudo_raw.sql
+```
+
+### 3. Secrets do GitHub
+
+**Settings → Secrets and variables → Actions**
 
 | Secret | Obrigatório | Descrição |
 |--------|-------------|-----------|
-| `ANTHROPIC_API_KEY` | ✅ Sim | API key da Anthropic (console.anthropic.com) |
-| `BREVO_API_KEY` | ✅ Sim | API key do Brevo (app.brevo.com) |
-| `BREVO_LIST_ID` | ✅ Sim | ID da lista de contatos no Brevo |
-| `EMAIL_REMETENTE` | ✅ Sim | Email remetente configurado no Brevo |
-| `BRAPI_TOKEN` | ✅ Sim | Token do Brapi (brapi.dev) |
-| `TICKERS` | ✅ Sim | Ex: `PETR4,VALE3,ITUB4,BBDC4,WEGE3` |
-| `GMAIL_CREDENTIALS_JSON` | ⚡ Recomendado | Credenciais Gmail para newsletters |
-| `GMAIL_REMETENTES` | ⚡ Recomendado | Ex: `newsletter@infomoney.com.br,...` |
-| `YOUTUBE_API_KEY` | ⚡ Recomendado | YouTube Data API v3 |
-| `TWILIO_ACCOUNT_SID` | 🔔 Opcional | Para notificação via WhatsApp |
-| `TWILIO_AUTH_TOKEN` | 🔔 Opcional | Para notificação via WhatsApp |
-| `TWILIO_WHATSAPP_FROM` | 🔔 Opcional | Ex: `whatsapp:+14155238886` |
-| `WHATSAPP_REVISOR` | 🔔 Opcional | Ex: `whatsapp:+5511999999999` |
-| `SENDGRID_API_KEY` | 🔔 Opcional | Para notificação via email (fallback) |
-| `EMAIL_REVISOR` | 🔔 Opcional | Email para notificação de revisão |
+| `ANTHROPIC_API_KEY` | ✅ | Anthropic (Claude Sonnet + Haiku + Vision) |
+| `SUPABASE_URL` | ✅ | URL do projeto Supabase |
+| `SUPABASE_SERVICE_KEY` | ✅ | Chave de serviço Supabase |
+| `BREVO_API_KEY` | ✅ | Distribuição de emails |
+| `BREVO_LIST_ID` | ✅ | ID da lista de contatos |
+| `EMAIL_REMETENTE` | ✅ | Email remetente configurado no Brevo |
+| `TELEGRAM_BOT_TOKEN` | ✅ | Bot de notificação e aprovação |
+| `TELEGRAM_CHAT_ID` | ✅ | Chat ID do revisor |
+| `BRAPI_TOKEN` | ✅ | Dados financeiros B3 |
+| `APIFY_API_TOKEN` | ✅ | Coleta Instagram e Twitter/X |
+| `EXA_API_KEY` | ✅ | Deep Research semanal |
+| `YOUTUBE_API_KEY` | ⚡ | Canais concorrentes YouTube |
+| `FINTZ_API_KEY` | ⚡ | DY, proventos, Tesouro Direto |
+| `GMAIL_CREDENTIALS_JSON` | ⚡ | Coleta de newsletters via Gmail |
+| `GMAIL_TOKEN_JSON` | ⚡ | Token OAuth Gmail |
 
-> **Nota:** Se nenhum canal de notificação (WhatsApp/email) estiver configurado,
-> o GitHub Actions ainda enviará email automático para os reviewers do environment.
-> A aprovação sempre funciona — a notificação personalizada é opcional.
+### 4. Dashboard (opcional)
 
-### Passo 4 — Ativar o workflow
-1. Vá em **Actions** no repositório
-2. Clique em "Newsletter — Fuja do Mico"
-3. Clique em "Enable workflow"
-
-O pipeline rodará automaticamente toda segunda às 8h (Brasília).
-Para testar antes: clique em **"Run workflow"** e rode manualmente.
-
----
-
-## Como é o fluxo de aprovação
-
-Quando a edição estiver pronta, você receberá:
-- **WhatsApp** (se configurado): mensagem com link direto para aprovação
-- **Email do GitHub** (sempre): notificação automática de revisão pendente
-
-Para aprovar:
-1. Acesse o link recebido (ou vá direto em GitHub → Actions)
-2. Clique na execução pendente
-3. Clique em **"Review deployments"**
-4. Selecione **"aprovacao-humana"**
-5. Clique **"Approve and deploy"**
-
-O Brevo dispara a newsletter imediatamente após a aprovação.
-
----
-
-## Para usar com OpenClaw (WhatsApp nativo)
-Se você preferir a aprovação pelo WhatsApp sem Twilio,
-instale o OpenClaw numa VPS com o canal WhatsApp configurado.
-No `08_notify.py`, adicione um step que chama o webhook do OpenClaw
-passando a URL de aprovação. O OpenClaw entrega a mensagem no WhatsApp
-e você responde lá — mas a aprovação final ainda acontece no GitHub.
-
----
-
-## Rodando localmente (para testar)
 ```bash
-# Instalar dependências
-pip install -r requirements.txt
+cd dashboard
+npm install
+# Configure .env.local com SUPABASE_URL, SUPABASE_ANON_KEY, ANTHROPIC_API_KEY
+npm run dev
+```
 
-# Criar pasta de dados
-mkdir data output
+Deploy no Vercel com um clique após configurar as env vars.
 
-# Configurar variáveis (crie um arquivo .env)
-export ANTHROPIC_API_KEY="sua-chave-aqui"
-export BRAPI_TOKEN="seu-token-aqui"
-export TICKERS="PETR4,VALE3,ITUB4"
+### 5. Ativar os Workflows
 
-# Rodar cada script manualmente
-python scripts/02_collect_rss.py      # Não precisa de credenciais
-python scripts/04_collect_brapi.py    # Precisa de BRAPI_TOKEN
-python scripts/05_triage.py           # Precisa de ANTHROPIC_API_KEY
-python scripts/06_generate.py         # Precisa de ANTHROPIC_API_KEY
-python scripts/07_populate_template.py
-# Abra output/newsletter_final.html no browser para ver o resultado
+Em **Actions** no GitHub, ative os workflows:
+- `newsletter.yml` — pipeline principal
+- `rss_poll.yml`, `gmail_poll.yml`, `social_poll.yml` — coleta contínua
+- `triage_pool.yml` — triagem automática
+- `research.yml` — deep research semanal
+
+Para testar antes do cron: clique em **"Run workflow"** em qualquer um.
+
+---
+
+## Variáveis de Configuração
+
+| Variável | Tipo | Default | Descrição |
+|----------|------|---------|-----------|
+| `POOL_THRESHOLD` | GitHub Variable | `10` | Mínimo de itens aprovados para usar pool |
+| `TICKERS` | Secret | — | Ex: `PETR4,VALE3,ITUB4,BBDC4` |
+| `SUPABASE_SALVAR_CONTEUDO` | Variable | `false` | Persistir dados brutos no Supabase |
+
+---
+
+## Custo Operacional Estimado
+
+| Serviço | Frequência | Custo estimado |
+|---------|-----------|----------------|
+| GitHub Actions | — | Gratuito (plano free) |
+| Claude Sonnet (geração) | Por edição | ~$0.10 |
+| Claude Haiku (triagem pool) | Por batch de 20 | ~$0.001 |
+| Claude Vision (carrosséis) | Por carrossel | ~$0.015 |
+| EXA API (deep research) | Por Sunday | ~$0.03 |
+| Apify — Instagram (6 contas, 6h) | /mês | ~$8–15 |
+| Apify — Twitter (3 handles, 6h) | /mês | ~$3–8 |
+| Brapi + YouTube API | — | Gratuito |
+| Fintz | — | ~$0/mês (plano gratuito) |
+| Supabase | — | Gratuito (plano free) |
+| Brevo | Até 300 emails/dia | Gratuito |
+| Vercel (dashboard) | — | Gratuito |
+| **Total estimado** | **/mês** | **~$15–30/mês** |
+
+---
+
+## Contas e Queries Configuráveis
+
+Edite `config/concorrentes.json` para ajustar quais contas monitorar:
+
+```json
+{
+  "youtube": [
+    { "handle": "@primorico", "ultima_verificacao": null }
+  ],
+  "instagram": ["thiago.nigro", "bruno_perini"],
+  "twitter": ["thiago_nigro", "BrunoPerini"]
+}
+```
+
+Edite `config/deep_research_queries.json` para ajustar as pesquisas semanais:
+
+```json
+{
+  "queries": [
+    "SELIC decisão Banco Central",
+    "Resultados trimestrais empresas B3"
+  ]
+}
 ```
 
 ---
 
-## Custos estimados por edição
-| Serviço | Custo |
-|---------|-------|
-| GitHub Actions | Gratuito (2.000 min/mês no plano free) |
-| Claude API (triagem + geração) | ~$0.05–0.15 por edição |
-| Brapi | Gratuito |
-| YouTube API | Gratuito (dentro da quota) |
-| Brevo | Gratuito até 300 emails/dia |
-| Twilio WhatsApp | ~$0.005 por mensagem |
-| **Total por edição** | **~$0.10–0.20** |
+<div align="center">
 
----
+*Fuja do Mico — Liga Acadêmica de Investimentos · Conteúdo educativo, não recomendação de investimento.*
 
-*Fuja do Mico — Liga Financeira · Conteúdo educativo, não recomendação de investimento.*
+</div>
