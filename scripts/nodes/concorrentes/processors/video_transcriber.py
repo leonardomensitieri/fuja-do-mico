@@ -1,26 +1,40 @@
 """
 Processor: video_transcriber.py
 ================================
-Obtém transcrição de vídeo YouTube via youtube-transcript-api (sem OAuth).
+Obtém transcrição de vídeo YouTube via youtube-transcript-api.
+Usa proxy residencial Apify para contornar bloqueio de IPs cloud (GitHub Actions).
 Fallback para título + descrição quando legendas indisponíveis.
 
 Detecta Shorts via duração ISO 8601 (< 60s = Short).
 """
 
+import os
 import isodate
 
 
 def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> str:
     """
-    Busca transcrição via youtube-transcript-api.get_transcript() — API mais
-    simples e estável entre v0.x e v1.x. Tenta pt, pt-BR e en nessa ordem.
-    Fallback: retorna f"{titulo}. {descricao}" se nenhuma legenda disponível.
+    Busca transcrição via youtube-transcript-api v1.x.
+    Se APIFY_API_TOKEN disponível, roteia pelo proxy residencial Apify
+    para contornar o bloqueio de IPs de cloud providers (GitHub Actions).
+    Fallback: retorna título + descrição se nenhuma legenda disponível.
     """
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
+        from youtube_transcript_api.proxies import GenericProxiesConfig
 
-        # v1.x: instanciar a classe e usar .fetch()
-        api = YouTubeTranscriptApi()
+        apify_token = os.environ.get('APIFY_API_TOKEN')
+        if apify_token:
+            # Proxy residencial Apify — não bloqueado pelo YouTube
+            proxy_url = f'http://auto:{apify_token}@proxy.apify.com:8000'
+            proxies_config = GenericProxiesConfig(
+                http_url=proxy_url,
+                https_url=proxy_url,
+            )
+            api = YouTubeTranscriptApi(proxies=proxies_config)
+        else:
+            api = YouTubeTranscriptApi()
+
         entradas = api.fetch(video_id, languages=['pt', 'pt-BR', 'pt-br', 'en'])
         texto = ' '.join(
             e.text if hasattr(e, 'text') else e['text']
@@ -28,6 +42,7 @@ def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> st
         ).strip()
         if texto:
             return texto
+
     except Exception as e:
         print(f'    ⚠️  Transcrição falhou ({video_id}): {type(e).__name__}: {e}')
 
