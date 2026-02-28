@@ -12,43 +12,27 @@ import isodate
 
 def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> str:
     """
-    Busca transcrição via youtube-transcript-api (não requer OAuth).
-    Prefere português (pt, pt-BR); aceita qualquer idioma disponível.
+    Busca transcrição via youtube-transcript-api.get_transcript() — API mais
+    simples e estável entre v0.x e v1.x. Tenta pt, pt-BR e en nessa ordem.
     Fallback: retorna f"{titulo}. {descricao}" se nenhuma legenda disponível.
     """
     try:
-        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+        from youtube_transcript_api import YouTubeTranscriptApi
 
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-
-        # Prefere transcrição em português; aceita qualquer outro idioma
-        transcript = None
-        try:
-            transcript = transcript_list.find_transcript(['pt', 'pt-BR', 'pt-br'])
-        except NoTranscriptFound:
-            try:
-                # Tenta legenda gerada automaticamente em português
-                transcript = transcript_list.find_generated_transcript(['pt', 'pt-BR', 'pt-br'])
-            except NoTranscriptFound:
-                # Pega qualquer transcrição disponível
-                for t in transcript_list:
-                    transcript = t
-                    break
-
-        if transcript:
-            entries = transcript.fetch()
-            # v1.x retorna TranscriptSnippet com atributo .text (não dict)
-            texto = ' '.join(
-                entry.text if hasattr(entry, 'text') else entry['text']
-                for entry in entries
-            ).strip()
-            if texto:
-                return texto
-
+        entradas = YouTubeTranscriptApi.get_transcript(
+            video_id,
+            languages=['pt', 'pt-BR', 'pt-br', 'en']
+        )
+        # Compatível com v0.x (dict) e v1.x (objeto com .text)
+        texto = ' '.join(
+            e.text if hasattr(e, 'text') else e['text']
+            for e in entradas
+        ).strip()
+        if texto:
+            return texto
     except Exception:
-        pass  # Fallback silencioso — canal sem legendas ou erro de rede
+        pass  # Fallback silencioso — vídeo sem legenda disponível
 
-    # Fallback: título + descrição
     return f"{titulo}. {descricao}".strip()
 
 
