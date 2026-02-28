@@ -18,10 +18,10 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependências
-        run: pip install -r fuja-do-mico-gh/requirements.txt
+        run: pip install -r requirements.txt
 
       - name: Executar Deep Research Semanal
-        run: python fuja-do-mico-gh/scripts/nodes/noticias/deep_research_agent.py
+        run: python scripts/nodes/noticias/deep_research_agent.py
         env:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
