@@ -37,7 +37,11 @@ def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> st
 
         if transcript:
             entries = transcript.fetch()
-            texto = ' '.join(entry['text'] for entry in entries).strip()
+            # v1.x retorna TranscriptSnippet com atributo .text (não dict)
+            texto = ' '.join(
+                entry.text if hasattr(entry, 'text') else entry['text']
+                for entry in entries
+            ).strip()
             if texto:
                 return texto
 
