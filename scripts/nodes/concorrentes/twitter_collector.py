@@ -136,10 +136,13 @@ def coletar_handle(supabase, handle: str) -> int:
             continue
 
         try:
+            # Usa primeiros 100 chars do tweet como título
+            titulo = texto[:100]
             supabase.table('conteudo_raw').insert({
                 'fonte': 'twitter',
                 'plataforma': 'twitter',
                 'tipo_conteudo': 'tweet',
+                'titulo': titulo,
                 'conta_origem': handle_clean,
                 'conteudo_texto': texto[:8000],
                 'url_original': url,
