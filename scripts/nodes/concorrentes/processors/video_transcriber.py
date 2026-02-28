@@ -22,11 +22,13 @@ def obter_transcricao(youtube, video_id: str, titulo: str, descricao: str) -> st
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
 
-        apify_token = os.environ.get('APIFY_API_TOKEN')
-        if apify_token:
+        # APIFY_PROXY_PASSWORD é a senha do proxy residencial (≠ API token)
+        # Encontrada em: console.apify.com/account/integrations
+        proxy_password = os.environ.get('APIFY_PROXY_PASSWORD')
+        if proxy_password:
             # Proxy residencial Apify via env vars — funciona com qualquer versão
             # da biblioteca pois requests respeita HTTP_PROXY/HTTPS_PROXY
-            proxy_url = f'http://auto:{apify_token}@proxy.apify.com:8000'
+            proxy_url = f'http://auto:{proxy_password}@proxy.apify.com:8000'
             os.environ['HTTP_PROXY'] = proxy_url
             os.environ['HTTPS_PROXY'] = proxy_url
 
