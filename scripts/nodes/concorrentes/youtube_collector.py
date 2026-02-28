@@ -27,7 +27,9 @@ from pathlib import Path
 
 from googleapiclient.discovery import build
 
-# Adiciona scripts/ ao path para importar db_provider
+# parents[0] = scripts/nodes/concorrentes/ → para importar processors.video_transcriber
+# parents[2] = scripts/                    → para importar db_provider
+sys.path.insert(0, str(Path(__file__).resolve().parents[0]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from processors.video_transcriber import obter_transcricao, tipo_conteudo
 
