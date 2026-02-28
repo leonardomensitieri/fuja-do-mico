@@ -1,0 +1,29 @@
+name: Node Notícias — Deep Research Semanal
+
+on:
+  schedule:
+    - cron: '0 6 * * 0'  # Domingo às 6h UTC (antes do pipeline de segunda)
+  workflow_dispatch:      # Execução manual para testes
+
+jobs:
+  deep-research:
+    name: "🔍 Deep Research — Mercado Financeiro BR"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install -r fuja-do-mico-gh/requirements.txt
+
+      - name: Executar Deep Research Semanal
+        run: python fuja-do-mico-gh/scripts/nodes/noticias/deep_research_agent.py
+        env:
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}

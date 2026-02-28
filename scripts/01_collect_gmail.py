@@ -7,12 +7,15 @@ O que faz:
   - Conecta na conta Gmail via API (OAuth2)
   - Busca emails não lidos das newsletters que você assinou
   - Extrai o corpo do email em texto limpo
-  - Salva em data/newsletters_raw.json para o próximo script
+  - Grava cada email individualmente em conteudo_raw (Story 3.2)
+  - Salva em data/newsletters_raw.json para o próximo script (fallback pipeline semanal)
 
 Credenciais necessárias (GitHub Secrets):
   - GMAIL_CREDENTIALS_JSON : conteúdo do credentials.json baixado do Google Cloud
   - GMAIL_REMETENTES       : lista de emails separados por vírgula
                              ex: "newsletter@infomoney.com.br,noticias@suno.com.br"
+  - SUPABASE_URL           : URL do projeto Supabase (opcional — gravação em conteudo_raw)
+  - SUPABASE_SERVICE_KEY   : chave de serviço Supabase (opcional)
 """
 
 import os
@@ -63,6 +66,29 @@ def extrair_texto_email(payload: dict) -> str:
     return ''
 
 
+def gravar_em_conteudo_raw(supabase, item: dict):
+    """
+    Grava um email individualmente em conteudo_raw (Story 3.2).
+    Não substitui a gravação em conteudo_coletado — operação aditiva.
+    """
+    if not supabase:
+        return
+    try:
+        supabase.table('conteudo_raw').insert({
+            'fonte': 'gmail',
+            'plataforma': 'email',
+            'tipo_conteudo': 'newsletter',
+            'conta_origem': item.get('remetente', ''),
+            'conteudo_texto': item.get('conteudo', ''),
+            'url_original': None,
+            'data_publicacao': item.get('data') or None,
+            'processado': False,
+            'metadata': {'assunto': item.get('assunto', '')}
+        }).execute()
+    except Exception as e:
+        print(f'  ⚠️  Erro ao gravar em conteudo_raw ({e}) — continuando')
+
+
 def salvar_resultado(dados: list, arquivo: str, edicao_id: str = None):
     """
     Persiste resultado localmente e no banco (se configurado).
@@ -87,6 +113,15 @@ def salvar_resultado(dados: list, arquivo: str, edicao_id: str = None):
 
 def main():
     print("📧 Iniciando coleta de newsletters via Gmail...")
+
+    # Inicializa cliente Supabase para gravação em conteudo_raw (Story 3.2)
+    supabase = None
+    if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+        try:
+            from db_provider import get_client
+            supabase = get_client()
+        except Exception as e:
+            print(f'  ⚠️  Supabase indisponível ({e}) — gravando apenas JSON local')
 
     # Carregar credenciais
     creds_json = os.environ.get('GMAIL_CREDENTIALS_JSON')
@@ -133,6 +168,7 @@ def main():
     print(f"  Encontradas: {len(mensagens)} newsletters")
 
     newsletters = []
+    gravados_raw = 0
     for msg_ref in mensagens:
         msg = service.users().messages().get(
             userId='me',
@@ -144,13 +180,22 @@ def main():
         texto = extrair_texto_email(msg['payload'])
 
         if texto and len(texto) > 100:  # Ignora emails vazios
-            newsletters.append({
+            newsletter = {
                 'fonte': 'gmail',
                 'remetente': headers.get('From', ''),
                 'assunto': headers.get('Subject', ''),
                 'data': headers.get('Date', ''),
                 'conteudo': texto[:8000]  # Limita a 8k chars por email
-            })
+            }
+            newsletters.append(newsletter)
+
+            # Grava individualmente em conteudo_raw (Story 3.2)
+            gravar_em_conteudo_raw(supabase, newsletter)
+            if supabase:
+                gravados_raw += 1
+
+    if supabase:
+        print(f"  📥 {gravados_raw} newsletters gravadas em conteudo_raw")
 
     salvar_resultado(newsletters, 'newsletters_raw.json')
     print(f"✅ {len(newsletters)} newsletters salvas em data/newsletters_raw.json")

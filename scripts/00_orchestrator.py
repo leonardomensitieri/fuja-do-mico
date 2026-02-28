@@ -46,8 +46,75 @@ import re
 import subprocess
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+
+
+# ──────────────────────────────────────────────────────────────
+# POOL DE CONTEÚDO — Epic 3, Story 3.4
+# ──────────────────────────────────────────────────────────────
+
+def _conteudo_do_pool(supabase) -> list | None:
+    """
+    Consulta pool de conteúdo aprovado em conteudo_raw (Story 3.4).
+    Retorna lista de itens se >= POOL_THRESHOLD nos últimos 7 dias.
+    Retorna None se Supabase indisponível, pool vazio ou insuficiente.
+    """
+    if not supabase:
+        return None
+    try:
+        threshold = int(os.environ.get('POOL_THRESHOLD', '10'))
+        sete_dias_atras = (datetime.now() - timedelta(days=7)).isoformat()
+        res = (
+            supabase.table('conteudo_raw')
+            .select('*')
+            .eq('status_triagem', 'APROVADO')
+            .gte('data_captura', sete_dias_atras)
+            .order('data_captura', desc=True)
+            .execute()
+        )
+        itens = res.data or []
+        if len(itens) >= threshold:
+            print(f"  ✅ Pool ativo: {len(itens)} itens aprovados — pulando coleta ativa")
+            return itens
+        else:
+            print(f"  ℹ️  Pool insuficiente ({len(itens)} itens, threshold={threshold}) — rodando coleta ativa (fallback)")
+            return None
+    except Exception as e:
+        print(f"  ⚠️  Erro ao consultar pool ({e}) — fallback para coleta ativa")
+        return None
+
+
+def _converter_pool_para_triado(pool: list) -> list:
+    """
+    Converte itens de conteudo_raw (formato pool) para o formato
+    esperado por data/conteudo_triado.json e pelos gates subsequentes.
+    """
+    triados = []
+    for item in pool:
+        metadata = item.get('metadata') or {}
+        conteudo = item.get('conteudo_texto', '') or ''
+        clone = item.get('clone_sugerido', '') or ''
+        linha = item.get('linha_editorial_sugerida', '') or ''
+        temas = [t for t in [linha, clone] if t]
+
+        triados.append({
+            'fonte': item.get('fonte', 'pool'),
+            'titulo': metadata.get('titulo', '') or item.get('url_original', '') or '',
+            'resumo': conteudo[:500],
+            'conteudo': conteudo,
+            'link': item.get('url_original', ''),
+            'data': item.get('data_publicacao') or item.get('data_captura', ''),
+            'triagem': {
+                'relevancia': 'ALTO',
+                'justificativa': f'Pool aprovado — linha: {linha}',
+                'temas_identificados': temas,
+                'angulo_potencial_para_newsletter': linha,
+                'resumo_em_3_linhas': conteudo[:300],
+                'clone_sugerido': clone,
+            }
+        })
+    return triados
 
 
 # ──────────────────────────────────────────────────────────────
@@ -126,17 +193,10 @@ def executar_coleta_conteudo() -> dict:
         if path.exists():
             metricas['youtube_count'] = len(json.loads(path.read_text()))
 
-    # Coleta social via Apify — não-bloqueante (Story 2.1)
-    if os.environ.get('APIFY_API_TOKEN'):
-        sucesso_social = executar_script('10_collect_social.py')
-        if not sucesso_social:
-            print('  ⚠️  Coleta social falhou — pipeline continua sem dados sociais')
-        else:
-            path = Path('data/social_raw.json')
-            if path.exists():
-                metricas['social_count'] = len(json.loads(path.read_text()))
-    else:
-        print('  ℹ️  APIFY_API_TOKEN não configurado — coleta social pulada')
+    # Coleta social — substituída pelo Node Concorrentes (Story 3.5/3.6)
+    # 10_collect_social.py removido da execução automática; Node Concorrentes
+    # alimenta conteudo_raw diretamente com dados de Instagram/Twitter via Apify.
+    print('  ℹ️  Coleta social: substituída pelo Node Concorrentes (Stories 3.5/3.6)')
 
     return metricas
 
@@ -600,19 +660,51 @@ def main():
             except Exception as e:
                 print(f"  ⚠️  Falha ao criar edição no Supabase ({e}) — continuando")
 
-        # FASE 1 — Coleta de conteúdo (Gmail, RSS, YouTube)
-        print("\n\n═══ FASE 1: COLETA DE CONTEÚDO ═══")
-        atualizar_status('em_coleta')
-        coleta = executar_coleta_conteudo()
-        report['coleta'] = coleta
-        print(f"\n  Resumo coleta: {coleta}")
+        # Inicializar cliente Supabase para uso no pool e status updates
+        supabase = None
+        if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+            try:
+                from db_provider import get_client as _get_client
+                supabase = _get_client()
+            except Exception as e:
+                print(f"  ⚠️  Supabase indisponível ({e}) — pool desativado")
 
-        # FASE 2 — Triagem
-        print("\n\n═══ FASE 2: TRIAGEM ═══")
-        atualizar_status('triagem')
-        triagem = executar_triagem()
+        # FASE 1+2 — Pool ou Coleta Ativa (Story 3.4)
+        print("\n\n═══ FASE 1: VERIFICAR POOL / COLETA ═══")
+        pool = _conteudo_do_pool(supabase)
+
+        if pool:
+            # Pool suficiente → converte para formato triado e pula coleta ativa
+            print(f"  🏊 Usando {len(pool)} itens do pool — coleta ativa e triagem puladas")
+            conteudo_triado = _converter_pool_para_triado(pool)
+            Path('data').mkdir(exist_ok=True)
+            Path('data/conteudo_triado.json').write_text(
+                json.dumps(conteudo_triado, ensure_ascii=False, indent=2),
+                encoding='utf-8'
+            )
+            coleta = {
+                'gmail_count': 0, 'rss_count': 0,
+                'youtube_count': 0, 'social_count': 0,
+                'pool_count': len(pool)
+            }
+            triagem = {
+                'alto': len(pool), 'medio': 0,
+                'baixo': 0, 'total_aprovados': len(pool)
+            }
+            atualizar_status('triagem')
+        else:
+            # Fallback: coleta ativa exatamente como antes
+            atualizar_status('em_coleta')
+            coleta = executar_coleta_conteudo()
+            print(f"\n  Resumo coleta: {coleta}")
+
+            print("\n\n═══ FASE 2: TRIAGEM ═══")
+            atualizar_status('triagem')
+            triagem = executar_triagem()
+            print(f"\n  Resumo triagem: {triagem}")
+
+        report['coleta'] = coleta
         report['triagem'] = triagem
-        print(f"\n  Resumo triagem: {triagem}")
 
         # GATE 1 — Limiar de conteúdo
         print("\n\n═══ GATE 1: LIMIAR DE CONTEÚDO ═══")

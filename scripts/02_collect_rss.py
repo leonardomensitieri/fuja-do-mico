@@ -6,16 +6,21 @@ Decision Tree: Criatividade? NÃO → Algoritmo? SIM → External API? SIM → W
 O que faz:
   - Lê os feeds RSS configurados em config/rss_feeds.txt
   - Filtra apenas itens publicados nos últimos 7 dias
-  - Salva em data/rss_raw.json para o próximo script
+  - Grava cada artigo individualmente em conteudo_raw (Story 3.2)
+  - Salva em data/rss_raw.json para o próximo script (fallback pipeline semanal)
 
-Sem credenciais necessárias — feeds RSS são públicos.
+Credenciais necessárias (opcionais — sem elas, só salva JSON local):
+  - SUPABASE_URL        : URL do projeto Supabase
+  - SUPABASE_SERVICE_KEY: chave de serviço para gravação em conteudo_raw
 """
 
+import os
 import json
 import feedparser
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from time import mktime
+from urllib.parse import urlparse
 
 
 # Feeds RSS de portais financeiros brasileiros
@@ -49,6 +54,31 @@ def data_entry(entry) -> datetime | None:
     return None
 
 
+def gravar_em_conteudo_raw(supabase, item: dict, url_feed: str = ''):
+    """
+    Grava um artigo RSS individualmente em conteudo_raw (Story 3.2).
+    Não substitui a gravação em conteudo_coletado — operação aditiva.
+    """
+    if not supabase:
+        return
+    try:
+        # Extrai domínio do feed como conta_origem (ex: 'infomoney.com.br')
+        dominio = urlparse(url_feed).netloc.replace('www.', '') if url_feed else ''
+        supabase.table('conteudo_raw').insert({
+            'fonte': 'rss',
+            'plataforma': 'web',
+            'tipo_conteudo': 'artigo',
+            'conta_origem': dominio,
+            'conteudo_texto': item.get('conteudo', ''),
+            'url_original': item.get('link', ''),
+            'data_publicacao': item.get('data') or None,
+            'processado': False,
+            'metadata': {'titulo': item.get('titulo', ''), 'feed_url': url_feed}
+        }).execute()
+    except Exception as e:
+        print(f'  ⚠️  Erro ao gravar em conteudo_raw ({e}) — continuando')
+
+
 def salvar_resultado(dados: list, arquivo: str, edicao_id: str = None):
     """
     Persiste resultado localmente e no banco (se configurado).
@@ -74,9 +104,19 @@ def salvar_resultado(dados: list, arquivo: str, edicao_id: str = None):
 def main():
     print("📰 Iniciando coleta de feeds RSS...")
 
+    # Inicializa cliente Supabase para gravação em conteudo_raw (Story 3.2)
+    supabase = None
+    if os.environ.get('SUPABASE_URL') and os.environ.get('SUPABASE_SERVICE_KEY'):
+        try:
+            from db_provider import get_client
+            supabase = get_client()
+        except Exception as e:
+            print(f'  ⚠️  Supabase indisponível ({e}) — gravando apenas JSON local')
+
     feeds = carregar_feeds()
     limite = datetime.now(tz=timezone.utc) - timedelta(days=7)
     artigos = []
+    gravados_raw = 0
 
     for url in feeds:
         print(f"  Processando: {url}")
@@ -102,14 +142,21 @@ def main():
                 resumo_limpo = re.sub(r'\s+', ' ', resumo_limpo).strip()
 
                 if titulo and resumo_limpo:
-                    artigos.append({
+                    artigo = {
                         'fonte': f'rss:{fonte}',
                         'titulo': titulo,
                         'resumo': resumo_limpo[:2000],
                         'link': link,
                         'data': data.isoformat() if data else '',
                         'conteudo': f"{titulo}\n\n{resumo_limpo}"
-                    })
+                    }
+                    artigos.append(artigo)
+
+                    # Grava individualmente em conteudo_raw (Story 3.2)
+                    gravar_em_conteudo_raw(supabase, artigo, url_feed=url)
+                    if supabase:
+                        gravados_raw += 1
+
                     novos += 1
 
             print(f"    → {novos} artigos novos")
@@ -117,6 +164,9 @@ def main():
         except Exception as e:
             print(f"    ⚠️  Erro ao processar {url}: {e}")
             continue
+
+    if supabase:
+        print(f"  📥 {gravados_raw} artigos gravados em conteudo_raw")
 
     salvar_resultado(artigos, 'rss_raw.json')
     print(f"✅ {len(artigos)} artigos RSS salvos em data/rss_raw.json")
