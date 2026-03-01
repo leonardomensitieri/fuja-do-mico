@@ -97,11 +97,10 @@ Distribuição via Brevo
 ## Filosofia — A Task como Unidade Atômica
 
 > *"Não existe nada além da task. Task é a unidade atômica. O que você muda é o executor."*
-> — Synkra AIOS
 
-Este projeto foi construído sobre os princípios do **[Synkra AIOS](https://github.com/synkra/aios)** — um meta-framework open source que inverte a lógica convencional de agentes de IA.
+A arquitetura deste projeto parte de um princípio simples que inverte a lógica convencional de agentes de IA.
 
-A abordagem tradicional parte do agente: você cria um agente, define seu system prompt, conecta ferramentas e tenta fazer ele executar tarefas. O AIOS flipa isso. **Todo trabalho é sempre a execução de uma task.** O que muda é quem (ou o quê) a executa:
+A abordagem tradicional parte do agente: você cria um agente, define seu system prompt, conecta ferramentas e tenta fazer ele executar tarefas. Aqui a lógica é invertida. **Todo trabalho é sempre a execução de uma task.** O que muda é quem (ou o quê) a executa:
 
 | Executor | Quando usar |
 |----------|-------------|
