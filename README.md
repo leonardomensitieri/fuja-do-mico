@@ -94,6 +94,69 @@ Distribuição via Brevo
 
 ---
 
+## Filosofia — A Task como Unidade Atômica
+
+> *"Não existe nada além da task. Task é a unidade atômica. O que você muda é o executor."*
+> — Synkra AIOS
+
+Este projeto foi construído sobre os princípios do **[Synkra AIOS](https://github.com/synkra/aios)** — um meta-framework open source que inverte a lógica convencional de agentes de IA.
+
+A abordagem tradicional parte do agente: você cria um agente, define seu system prompt, conecta ferramentas e tenta fazer ele executar tarefas. O AIOS flipa isso. **Todo trabalho é sempre a execução de uma task.** O que muda é quem (ou o quê) a executa:
+
+| Executor | Quando usar |
+|----------|-------------|
+| **Humano** | Decisões com impacto jurídico, financeiro ou estratégico crítico — onde alguém precisa ser responsabilizado |
+| **Clone** | Existe uma metodologia ou heurística consolidada (ex: "como Buffett analisa P/L") |
+| **Agente IA genérico** | Requer criatividade e subjetividade, mas sem metodologia definida |
+| **Worker com API** | Determinístico + precisa de serviço externo (ex: buscar cotação na B3) |
+| **Worker Script** | Determinístico + tudo local (ex: parsear um feed RSS) |
+
+Uma task validada é lei: ela tem descrição clara, input definido, output esperado, pré-condições, critérios de aceitação e executor designado. Só após validada vai para execução. **Mais de 80% das tarefas do dia a dia são determinísticas** — elas não precisam de um LLM sofisticado, precisam de um worker confiável.
+
+O Fuja do Mico aplica exatamente isso: coleta de RSS, parsing de feeds e gravação no banco são workers (Python scripts). Triagem editorial e geração de texto são clones com heurísticas dos investidores. A aprovação final da edição permanece humana — é uma decisão com impacto sobre os leitores.
+
+### Árvore de Decisão do Executor
+
+```mermaid
+flowchart TD
+    A[Task to Execute] --> B{Requires Creativity\nor Subjectivity?}
+
+    B -->|No| C{Deterministic\nAlgorithm Exists?}
+    B -->|Yes| D{Human Judgment\nRequired?}
+
+    C -->|Yes| E{External API Call?}
+    C -->|No| D
+
+    D -->|Yes| F{Critical Decision\nwith Legal/Financial\nImpact?}
+    D -->|No| G{Specific Methodology\nRequired?}
+
+    F -->|Yes| H[Humano]
+    F -->|No| G
+
+    E -->|Yes| I[Worker with API]
+    E -->|No| J[Worker Script]
+
+    G -->|Yes| K[Clone with Heuristics]
+    G -->|No| L[Agente Generic AI]
+
+    I --> M[Execute Task]
+    J --> M
+    H --> M
+    K --> M
+    L --> M
+
+    style I fill:#2E7D32,color:#ffffff,stroke:#1B5E20
+    style J fill:#2E7D32,color:#ffffff,stroke:#1B5E20
+    style H fill:#C62828,color:#ffffff,stroke:#B71C1C
+    style K fill:#1565C0,color:#ffffff,stroke:#0D47A1
+    style L fill:#F9A825,color:#000000,stroke:#F57F17
+    style M fill:#4A4A8A,color:#ffffff,stroke:#2E2E6A
+```
+
+No pipeline do Fuja do Mico: os nodes de coleta (RSS, Gmail, YouTube, Instagram, Twitter) são **Workers with API**. A triagem automática e os clones de investidores são **Clones with Heuristics**. A aprovação da edição antes do envio é **Humano** — propositalmente.
+
+---
+
 ## Stack
 
 | Componente | Tecnologia |
